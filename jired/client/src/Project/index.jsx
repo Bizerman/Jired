@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback,useRef  } from 'react';
 import { Route, Redirect, useRouteMatch, useHistory } from 'react-router-dom';
 
 import toast from 'shared/utils/toast';
@@ -16,6 +16,7 @@ import IssueCreate from './IssueCreate';
 import ProjectSettings from './ProjectSettings';
 import ProjectCreate from '../ProjectCreate';
 import { ProjectPage } from './Styles';
+import { IssueStatus } from 'shared/constants/issues';
 
 const Project = () => {
   const match = useRouteMatch();
@@ -40,14 +41,91 @@ const Project = () => {
     if (!url) return;
     setIsProjectLoading(true);
     setProjectError(null);
+
     api.get(url)
-      .then(data => {
-        setProjectData(data);
-        setIsProjectLoading(false);
+      .then(async (data) => {
+        try {
+          const projectId = data.project.id;
+
+          // 1. Получаем все трекеры (или хотя бы список id)
+          const trackersRes = await api.get('/trackers.json');
+          const allTrackers = trackersRes.trackers || [];
+
+          // Привязываем каждый трекер к проекту (если ещё не привязан)
+          for (const tracker of allTrackers) {
+            try {
+              await api.post(`/projects/${projectId}/trackers/${tracker.id}.json`);
+            } catch (e) {
+              // игнорируем ошибку, если уже привязан
+            }
+          }
+
+          // 2. Загружаем справочник статусов
+          const statusesRes = await api.get('/issue_statuses.json');
+          const statuses = statusesRes.issue_statuses || [];
+
+          // 3. Загружаем задачи проекта (все, включая закрытые)
+          const issuesRes = await api.get('/issues.json', {
+            project_id: projectId,
+            limit: 100,
+            status_id: '*',          // получить все статусы, включая Done
+          });
+          const rawIssues = issuesRes.issues || [];
+          console.log('Total issues loaded:', rawIssues.length);
+
+          // 4. Нормализуем задачи
+          const mappedIssues = rawIssues.map(issue => {
+            const foundTracker = issue.tracker?.name || 'Task';
+            const foundPriority = issue.priority?.id ?? 2;
+            const foundStatus = statuses.find(s => s.id === issue.status?.id);
+            let statusKey = null;
+
+            if (foundStatus) {
+              const name = foundStatus.name.trim().toLowerCase();
+              console.log(`Issue #${issue.id}: status="${foundStatus.name}" -> key="${name}"`);
+              if (name.includes('backlog')) statusKey = IssueStatus.BACKLOG;
+              else if (name.includes('selected')) statusKey = IssueStatus.SELECTED;
+              else if (name.includes('in progress')) statusKey = IssueStatus.INPROGRESS;
+              else if (name.includes('done')) statusKey = IssueStatus.DONE;
+              else {
+                statusKey = IssueStatus.BACKLOG;
+                console.warn(`Unknown status "${foundStatus.name}" mapped to Backlog`);
+              }
+            }
+
+            return {
+              ...issue,
+              title: issue.subject || '',
+              type: foundTracker === 'Bug' ? 'bug' : foundTracker === 'Story' ? 'story' : 'task',
+              priority: String(foundPriority),
+              userIds: issue.assigned_to ? [issue.assigned_to.id] : [],
+              statusKey,
+              status_id: issue.status?.id,
+              lock_version: issue.lock_version,
+            };
+          });
+          if (isMountedRef.current) {
+          setProjectData({
+            ...data,
+            project: {
+              ...data.project,
+              issues: mappedIssues,
+              statuses,
+              users: [],
+            },
+          });
+        }
+        } catch (e) {
+          console.error('Metadata loading error', e);
+          setProjectData(data);
+        }
+        if (isMountedRef.current) setIsProjectLoading(false);
       })
       .catch(error => {
-        setProjectError(error);
-        setIsProjectLoading(false);
+        if (isMountedRef.current) {
+          setProjectError(error);
+          setIsProjectLoading(false);
+        }
       });
   }, []);
 
@@ -55,6 +133,11 @@ const Project = () => {
     setProjectData(prev => updater(prev));
   }, []);
 
+  const isMountedRef = useRef(false);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
   useEffect(() => {
     if (typeof projectId === 'number' && !isNaN(projectId)) {
       fetchProject(`/projects/${projectId}.json?include=issues`);
@@ -197,7 +280,10 @@ const Project = () => {
             <IssueCreate
               project={project}
               fetchProject={() => fetchProject(`/projects/${project.id}.json?include=issues`)}
-              onCreate={() => history.push(`${match.url}/board`)}
+              onCreate={() => {
+                fetchProject(`/projects/${project.id}.json?include=issues`);
+                history.push(`${match.url}/board`);
+              }}
               modalClose={modal.close}
             />
           )}

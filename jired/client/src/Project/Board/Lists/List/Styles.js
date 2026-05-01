@@ -45,3 +45,9 @@ export const Issues = styled.div`
   flex-direction: column;
   gap: 5px;             /* 4 * 1.25 */
 `;
+export const FadeWrapper = styled.div`
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  opacity: ${p => p.visible ? 1 : 0};
+  transform: ${p => p.visible ? 'scale(1)' : 'scale(0.95)'};
+  pointer-events: ${p => p.visible ? 'auto' : 'none'};
+`;
