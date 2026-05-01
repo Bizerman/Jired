@@ -11,6 +11,14 @@ export const IssueStatus = {
   DONE: 'done',
 };
 
+// Сопоставление ключа статуса и его названия в Redmine
+export const IssueStatusToName = {
+  [IssueStatus.BACKLOG]: 'Backlog',
+  [IssueStatus.SELECTED]: 'Selected',
+  [IssueStatus.INPROGRESS]: 'In Progress',
+  [IssueStatus.DONE]: 'Done',
+};
+
 export const IssuePriority = {
   HIGHEST: '5',
   HIGH: '4',
@@ -27,8 +35,8 @@ export const IssueTypeCopy = {
 
 export const IssueStatusCopy = {
   [IssueStatus.BACKLOG]: 'Backlog',
-  [IssueStatus.SELECTED]: 'Selected for development',
-  [IssueStatus.INPROGRESS]: 'In progress',
+  [IssueStatus.SELECTED]: 'Selected',
+  [IssueStatus.INPROGRESS]: 'In Progress',
   [IssueStatus.DONE]: 'Done',
 };
 

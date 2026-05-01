@@ -10,23 +10,24 @@ export const IssueLink = styled(Link)`
 `;
 
 export const Issue = styled.div`
-  padding: 12.5px 13.75px; /* 10 * 1.25, 11 * 1.25 */
-  border-radius: 5px;      /* 4 * 1.25 */
+  padding: 12.5px 13.75px;
+  border-radius: 5px;
   background: #fff;
-  border: 1px solid ${color.borderLightest};
-  transition: box-shadow 0.15s, border-color 0.15s;
+  border: 1px solid ${p => p.isSelected ? '#AD1E1E' : color.borderLightest};
+  transition: border 0.15s, box-shadow 0.15s;
   ${mixin.clickable}
   &:hover {
-    border-color: ${color.borderLight};
-    box-shadow: 0 2.5px 10px rgba(173, 30, 30, 0.08); /* 2 * 1.25, 8 * 1.25 */
+    background: ${p => p.isSelected ? 'inherit' : '#f9f9f9'};
+    box-shadow: ${p => p.isSelected ? 'none' : '0 2px 8px rgba(0,0,0,0.1)'};
   }
   ${props =>
     props.isBeingDragged &&
     css`
       transform: rotate(2deg);
-      box-shadow: 0 10px 30px rgba(173, 30, 30, 0.15); /* 8 * 1.25, 24 * 1.25 */
+      box-shadow: 0 10px 30px rgba(173, 30, 30, 0.15);
       border-color: ${color.primary};
     `}
+  cursor: pointer;
 `;
 
 export const Title = styled.p`
@@ -59,4 +60,34 @@ export const Assignees = styled.div`
 export const AssigneeAvatar = styled(Avatar)`
   margin-left: -2.5px;     /* -2 * 1.25 */
   box-shadow: 0 0 0 2.5px #fff; /* 2 * 1.25 */
+`;
+
+export const MultiDragBadge = styled.div`
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #AD1E1E;
+  color: #fff;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  z-index: 10;
+`;
+
+export const IssueCheckbox = styled.input`
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  opacity: ${p => p.checked ? 1 : 0};
+  &:hover { opacity: 1; }
+  ${Issue}:hover & { opacity: 1; }
 `;

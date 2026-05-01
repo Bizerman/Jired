@@ -4,6 +4,7 @@ import { useFormikContext, Field } from 'formik';
 
 import toast from 'shared/utils/toast';
 import useApi from 'shared/hooks/api';
+import api from 'shared/utils/api';               // прямой доступ к API для Extended API
 import { Form } from 'shared/components';
 import { color } from 'shared/utils/styles';
 import { Icon } from 'shared/components';
@@ -41,7 +42,7 @@ import {
   ShowMoreBtn,
 } from './Styles';
 
-// Кастомный чекбокс
+// Кастомный чекбокс (без изменений)
 const CheckboxField = ({ name, label }) => {
   const { values, setFieldValue } = useFormikContext();
   const checked = values[name];
@@ -85,13 +86,10 @@ const ProjectCreate = () => {
   const history = useHistory();
   const [{ isCreating }, createProject] = useApi.post('/projects.json');
 
-  // Состояния иконки и цвета
   const [icon, setIcon] = useState(null);
   const [iconPreview, setIconPreview] = useState(null);
   const [iconBgColor, setIconBgColor] = useState(color.backgroundMedium);
   const isMounted = useRef(true);
-
-  // Состояние «Show more»
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   useEffect(() => {
@@ -111,6 +109,33 @@ const ProjectCreate = () => {
     reader.readAsDataURL(file);
   };
 
+  // Проверка и создание трёх статусов
+  const ensureDefaultStatuses = async () => {
+    const requiredStatuses = [
+      { name: 'Backlog', is_closed: false },
+      { name: 'In Progress', is_closed: false },
+      { name: 'Done', is_closed: true },
+    ];
+
+    // Получаем текущие статусы
+    const { issue_statuses } = await api.get('/issue_statuses.json');
+    const existingNames = (issue_statuses || []).map(s => s.name.toLowerCase());
+
+    for (const { name, is_closed } of requiredStatuses) {
+      if (!existingNames.includes(name.toLowerCase())) {
+        try {
+          await api.post('/extended_api/issue_statuses.json', {
+            issue_status: { name, is_closed },
+          });
+          toast.success(`Status "${name}" created.`);
+        } catch (error) {
+          console.error(`Failed to create status "${name}":`, error);
+          toast.error(`Could not create status "${name}".`);
+        }
+      }
+    }
+  };
+
   const handleSubmit = async (values, form) => {
     try {
       const payload = {
@@ -126,6 +151,9 @@ const ProjectCreate = () => {
       const projectId = response?.project?.id;
 
       if (projectId) {
+        // Автоматически создаём стандартные статусы (Backlog, In Progress, Done)
+        await ensureDefaultStatuses();
+
         if (icon) {
           localStorage.setItem(`project_icon_${projectId}`, icon);
         }
@@ -188,7 +216,6 @@ const ProjectCreate = () => {
 
               <FormSection>
                 <FormFields>
-                  {/* Поле Name */}
                   <FieldGroup>
                     <FieldLabel><span>Name </span><Asterisk>*</Asterisk></FieldLabel>
                     <Field name="name">
@@ -196,7 +223,6 @@ const ProjectCreate = () => {
                     </Field>
                   </FieldGroup>
 
-                  {/* Блок выбора иконки с label */}
                   <FieldGroup>
                     <FieldLabel>Project Icon</FieldLabel>
                     <IconCard>
@@ -209,7 +235,7 @@ const ProjectCreate = () => {
                           />
                         </IconPreview>
                         <div style={{ flex: 1 }}>
-                          <p style={{  margin: 0, fontWeight: 600, color: '#202020', fontSize: '1rem' }}>
+                          <p style={{ margin: 0, fontWeight: 600, color: '#202020', fontSize: '1rem' }}>
                             Choose an icon
                           </p>
                           <p style={{ margin: '4px 0 0', color: '#7e7e7e', fontSize: '0.875rem' }}>
@@ -244,7 +270,6 @@ const ProjectCreate = () => {
                     <span>{showAdvanced ? 'Show less' : 'Show more'}</span>
                   </ShowMoreBtn>
 
-                  {/* Сворачиваемые поля */}
                   {showAdvanced && (
                     <>
                       <KeyField>

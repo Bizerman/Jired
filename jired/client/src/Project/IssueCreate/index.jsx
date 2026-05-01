@@ -40,35 +40,22 @@ const IssueCreate = ({ project, fetchProject, onCreate, modalClose }) => {
   const [loadingMeta, setLoadingMeta] = useState(true);
   const [configMessage, setConfigMessage] = useState('');
 
-  // создание нового статуса
-  const [showCreateStatus, setShowCreateStatus] = useState(false);
-  const [newStatusName, setNewStatusName] = useState('');
-  const [newStatusIsClosed, setNewStatusIsClosed] = useState(false);
-  const [creatingStatus, setCreatingStatus] = useState(false);
-
   // создание нового приоритета
   const [showCreatePriority, setShowCreatePriority] = useState(false);
   const [newPriorityName, setNewPriorityName] = useState('');
   const [newPriorityIsDefault, setNewPriorityIsDefault] = useState(false);
   const [creatingPriority, setCreatingPriority] = useState(false);
 
-  // Флаг смонтированности компонента
+  // ID статуса Backlog
+  const [backlogStatusId, setBacklogStatusId] = useState(null);
+
   const isMountedRef = useRef(false);
   useEffect(() => {
     isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
+    return () => { isMountedRef.current = false; };
   }, []);
 
-  // ─── вспомогательные API‑вызовы ──────────────────────────────
-  const createDefaultStatus = async () => {
-    const { issue_status } = await api.post('/extended_api/issue_statuses.json', {
-      issue_status: { name: 'New', is_closed: false },
-    });
-    return issue_status;
-  };
-
+  // ─── вспомогательный вызов для создания трекера ─────────────
   const createDefaultTracker = async (defaultStatusId) => {
     const { tracker } = await api.post('/extended_api/trackers.json', {
       tracker: { name: 'Task', default_status_id: defaultStatusId },
@@ -84,7 +71,7 @@ const IssueCreate = ({ project, fetchProject, onCreate, modalClose }) => {
     }
   };
 
-  // ─── основная загрузка метаданных ─────────────────────────────
+  // ─── загрузка метаданных и инициализация статусов ────────────
   const fetchMeta = async () => {
     setLoadingMeta(true);
     setConfigMessage('');
@@ -97,26 +84,66 @@ const IssueCreate = ({ project, fetchProject, onCreate, modalClose }) => {
 
       let currentTrackers = tRes.trackers || [];
       let currentStatuses = sRes.issue_statuses || [];
-      const currentPriorities = pRes.issue_priorities || [];
+      let currentPriorities = pRes.issue_priorities || [];
 
-      if (currentStatuses.length === 0) {
-        setConfigMessage('Creating default issue status...');
-        const newStatus = await createDefaultStatus();
-        currentStatuses = [newStatus];
-        toast.success('Default status "New" created.');
+      // Проверяем наличие каждого из трёх нужных статусов
+      const neededStatuses = [
+        { name: 'Backlog', is_closed: false },
+        { name: 'Selected', is_closed: false },
+        { name: 'In Progress', is_closed: false },
+        { name: 'Done', is_closed: true },
+      ];
+
+      for (const needed of neededStatuses) {
+        const exists = currentStatuses.some(
+          s => s.name.toLowerCase() === needed.name.toLowerCase()
+        );
+        if (!exists) {
+          try {
+            setConfigMessage(`Creating status "${needed.name}"...`);
+            const { issue_status } = await api.post('/extended_api/issue_statuses.json', {
+              issue_status: needed,
+            });
+            currentStatuses.push(issue_status);
+          } catch (e) {
+            console.warn(`Could not create status "${needed.name}"`, e);
+          }
+        }
       }
 
+      // Находим ID статуса Backlog
+      const backlog = currentStatuses.find(
+        s => s.name.toLowerCase() === 'backlog'
+      );
+      if (backlog) {
+        setBacklogStatusId(backlog.id);
+      } else {
+        throw new Error('Backlog status is missing and could not be created.');
+      }
+
+      // Если трекеров нет – создаём стандартный Task
       if (currentTrackers.length === 0) {
         setConfigMessage('Creating default tracker...');
         const defaultStatusId = currentStatuses[0]?.id;
-        if (!defaultStatusId)
-          throw new Error('Cannot create tracker without a valid status.');
+        if (!defaultStatusId) throw new Error('No status available for tracker');
         const newTracker = await createDefaultTracker(defaultStatusId);
         currentTrackers = [newTracker];
         toast.success('Default tracker "Task" created.');
+
+        // Автоматически настраиваем workflow для роли администратора (или первой не-встроенной)
+        try {
+          const response = await api.post('/workflows.json', {
+            tracker_id: newTracker.id,
+          });
+          toast.success('Workflow configured.');
+        } catch (e) {
+          // Посмотрим, что именно ответил Redmine
+          console.error('Workflow error details:', e.response?.data || e);
+          toast.error('Workflow setup failed. See console for details.');
+        }
       }
 
-      // Привязываем все трекеры к проекту (если ещё не привязаны)
+      // Привязываем все трекеры к проекту
       for (const tracker of currentTrackers) {
         await ensureTrackerAssignedToProject(tracker.id);
       }
@@ -143,33 +170,7 @@ const IssueCreate = ({ project, fetchProject, onCreate, modalClose }) => {
     fetchMeta();
   }, []);
 
-  // ─── создание статуса ────────────────────────────────────────
-  const handleCreateStatus = async () => {
-    if (!newStatusName.trim()) return;
-    setCreatingStatus(true);
-    try {
-      const response = await api.post('/extended_api/issue_statuses.json', {
-        issue_status: {
-          name: newStatusName.trim(),
-          is_closed: newStatusIsClosed,
-        },
-      });
-      if (isMountedRef.current) {
-        setStatuses(prev => [...prev, response.issue_status]);
-        toast.success(`Status "${response.issue_status.name}" created.`);
-        setShowCreateStatus(false);
-        setNewStatusName('');
-        setNewStatusIsClosed(false);
-      }
-    } catch (error) {
-      console.error('Failed to create status:', error);
-      if (isMountedRef.current) toast.error('Could not create status.');
-    } finally {
-      if (isMountedRef.current) setCreatingStatus(false);
-    }
-  };
-
-  // ─── создание приоритета (через Extended API enumerations) ────
+  // ─── создание приоритета ─────────────────────────────────────
   const handleCreatePriority = async () => {
     if (!newPriorityName.trim()) return;
     setCreatingPriority(true);
@@ -182,7 +183,6 @@ const IssueCreate = ({ project, fetchProject, onCreate, modalClose }) => {
           active: true,
         },
       });
-      // Extended API возвращает объект enumeration
       const newPriority = response.enumeration || response;
       if (isMountedRef.current) {
         setPriorities(prev => [...prev, newPriority]);
@@ -199,8 +199,12 @@ const IssueCreate = ({ project, fetchProject, onCreate, modalClose }) => {
     }
   };
 
-  // ─── создание задачи ──────────────────────────────────────────
+  // ─── создание задачи (статус всегда Backlog) ─────────────────
   const handleCreate = async (values) => {
+    if (!backlogStatusId) {
+      toast.error('Backlog status is not ready.');
+      return;
+    }
     setIsCreating(true);
     try {
       const payload = {
@@ -209,7 +213,7 @@ const IssueCreate = ({ project, fetchProject, onCreate, modalClose }) => {
           tracker_id: values.tracker_id,
           subject: values.subject,
           description: values.description || '',
-          status_id: values.status_id,
+          status_id: backlogStatusId,
           priority_id: values.priority_id || priorities[0]?.id,
           assigned_to_id: values.assigned_to_id || undefined,
           estimated_hours: values.estimated_hours || undefined,
@@ -222,17 +226,16 @@ const IssueCreate = ({ project, fetchProject, onCreate, modalClose }) => {
       modalClose();
     } catch (error) {
       console.error('Redmine error:', error);
-      if (isMountedRef.current) toast.error('Failed to create issue. See console for details.');
+      if (isMountedRef.current) toast.error('Failed to create issue.');
     } finally {
       if (isMountedRef.current) setIsCreating(false);
     }
   };
 
-  // ─── подготовка опций ─────────────────────────────────────────
-  const trackerOptions = trackers.map((t) => ({ value: t.id, label: t.name }));
-  const statusOptions = statuses.map((s) => ({ value: s.id, label: s.name }));
-  const priorityOptions = priorities.map((p) => ({ value: p.id, label: p.name }));
-  const assigneeOptions = (project.users || []).map((u) => ({ value: u.id, label: u.name }));
+  // ─── подготовка опций ────────────────────────────────────────
+  const trackerOptions = trackers.map(t => ({ value: t.id, label: t.name }));
+  const priorityOptions = priorities.map(p => ({ value: p.id, label: p.name }));
+  const assigneeOptions = (project.users || []).map(u => ({ value: u.id, label: u.name }));
 
   if (loadingMeta || configMessage) {
     return (
@@ -242,10 +245,10 @@ const IssueCreate = ({ project, fetchProject, onCreate, modalClose }) => {
     );
   }
 
-  if (trackers.length === 0 || statuses.length === 0) {
+  if (trackers.length === 0 || !backlogStatusId) {
     return (
       <div style={{ padding: 20, color: 'red', textAlign: 'center' }}>
-        <p>Could not initialize trackers or statuses.</p>
+        <p>Could not initialize trackers or required status (Backlog).</p>
         <button onClick={fetchMeta}>Retry</button>
       </div>
     );
@@ -257,7 +260,6 @@ const IssueCreate = ({ project, fetchProject, onCreate, modalClose }) => {
         subject: '',
         description: '',
         tracker_id: trackers[0]?.id,
-        status_id: statuses.find((s) => s.is_default)?.id || statuses[0]?.id,
         priority_id: priorities.find(p => p.is_default)?.id || priorities[0]?.id,
         assigned_to_id: '',
         estimated_hours: '',
@@ -266,7 +268,6 @@ const IssueCreate = ({ project, fetchProject, onCreate, modalClose }) => {
       validations={{
         subject: [Form.is.required(), Form.is.maxLength(255)],
         tracker_id: [Form.is.required()],
-        status_id: [Form.is.required()],
         priority_id: [Form.is.required()],
       }}
       onSubmit={handleCreate}
@@ -313,76 +314,6 @@ const IssueCreate = ({ project, fetchProject, onCreate, modalClose }) => {
           </div>
 
           <FieldRow>
-            <div style={{ position: 'relative' }}>
-              <FieldLabel>Status</FieldLabel>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <Form.Field.Select name="status_id" options={statusOptions} component={StyledSelect} />
-                <button
-                  type="button"
-                  onClick={() => setShowCreateStatus(true)}
-                  style={{
-                    background: 'none',
-                    border: '1px solid #ececec',
-                    borderRadius: 4,
-                    padding: '4px 8px',
-                    cursor: 'pointer',
-                    color: '#AD1E1E',
-                    fontSize: 14,
-                    whiteSpace: 'nowrap',
-                  }}
-                  title="Create new status"
-                >
-                  + New status
-                </button>
-              </div>
-
-              {showCreateStatus && (
-                <CreateStatusDialog>
-                  <h4 style={{ margin: '0 0 8px', fontWeight: 500 }}>Create issue status</h4>
-                  <CreateStatusInput
-                    type="text"
-                    placeholder="Status name (e.g. New)"
-                    value={newStatusName}
-                    onChange={(e) => setNewStatusName(e.target.value)}
-                    autoFocus
-                  />
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '8px 0', fontSize: 14 }}>
-                    <input
-                      type="checkbox"
-                      checked={newStatusIsClosed}
-                      onChange={(e) => setNewStatusIsClosed(e.target.checked)}
-                    />
-                    Task closed
-                  </label>
-                  <CreateStatusActions>
-                    <button
-                      type="button"
-                      onClick={() => { setShowCreateStatus(false); setNewStatusName(''); }}
-                      disabled={creatingStatus}
-                      style={{ background: 'none', border: '1px solid #ccc', borderRadius: 4, padding: '4px 12px', cursor: 'pointer' }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCreateStatus}
-                      disabled={creatingStatus || !newStatusName.trim()}
-                      style={{
-                        background: '#AD1E1E',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: 4,
-                        padding: '4px 12px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {creatingStatus ? 'Creating…' : 'Create'}
-                    </button>
-                  </CreateStatusActions>
-                </CreateStatusDialog>
-              )}
-            </div>
-
             <div style={{ position: 'relative' }}>
               <FieldLabel>Priority</FieldLabel>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
