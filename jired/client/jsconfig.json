@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "baseUrl": "src",
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "shared/*": ["shared/*"],
+      "Project/*": ["Project/*"],
+      "App/*": ["App/*"],
+      "shared/components": ["shared/components"],
+      "shared/utils": ["shared/utils"],
+      "shared/constants": ["shared/constants"],
+      "shared/hooks": ["shared/hooks"]
+    }
+  },
+  "include": ["src"]
+}
