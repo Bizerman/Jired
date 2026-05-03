@@ -52,12 +52,18 @@ export const DetailsCardHeader = styled.div`
   font-weight: 500;
   color: #4a2727;
   .gear-btn {
-    background: none;
     border: none;
+    background: transparent;
     cursor: pointer;
-    font-size: 14px;
-    line-height: 1;
     padding: 2px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background 0.15s;
+    &:hover {
+      background: #ebe7e7;
+    }
   }
   .collapse-btn {
     border: none;
@@ -76,10 +82,10 @@ export const DetailsCardHeader = styled.div`
 `;
 
 export const DetailsCardBody = styled.div`
-  padding: 14px 16px 12px;
+  padding: 14px 16px 30px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 25px;
 `;
 
 export const DetailField = styled.div`
@@ -162,4 +168,80 @@ export const StatusDropdownItem = styled.div`
   &:hover {
     background: #f5f0f0;
   }
+`;
+export const EditInput = styled.input`
+  padding: 4px 8px;
+  border: 1px solid #ececec;
+  border-radius: 4px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  color: #4a2727;
+  background: #fff;
+  &:focus {
+    outline: none;
+    border-color: #ad1e1e;
+  }
+`;
+
+export const EditSelect = styled.select`
+  padding: 4px 8px;
+  border: 1px solid #ececec;
+  border-radius: 4px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  color: #4a2727;
+  background: #fff;
+  &:focus {
+    outline: none;
+    border-color: #ad1e1e;
+  }
+`;
+
+export const EditActions = styled.div`
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 12px;
+`;
+
+export const EditButton = styled.button`
+  padding: 6px 16px;
+  border-radius: 4px;
+  border: none;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background: ${p => p.primary ? '#ad1e1e' : '#ebe7e7'};
+  color: ${p => p.primary ? '#fff' : '#4a2727'};
+  &:hover {
+    opacity: 0.9;
+    background: ${p => p.primary ? '#8a1818' : '#dcd5d5'};
+  }
+`;
+export const UserAvatarWrapper = styled.div`
+  display: inline-flex;
+  margin-right: 8px;
+`;
+
+export const UnassignedIcon = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #5E3F3F;
+  margin-right: 8px;
+  img {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
+export const PriorityIcon = styled.img`
+  width: 1.2rem;
+  height: 1.2rem;
+  margin-right: 6px;
+  vertical-align: middle;
 `;

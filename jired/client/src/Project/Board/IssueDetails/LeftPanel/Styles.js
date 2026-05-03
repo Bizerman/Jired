@@ -22,11 +22,12 @@ export const LeftContainer = styled.div`
 export const MainBlock = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2.5rem;
+  gap: 1rem;
 `;
 
 export const HeaderBlock = styled.div`
   display: flex;
+  flex-wrap: wrap;
   flex-direction: column;
   gap: 1rem;
 `;
@@ -64,8 +65,9 @@ export const DescriptionBlock = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.875rem;
+  flex: 1;               // растягиваем на доступное место
+  min-height: 0;          // важно для flex-переполнения
 `;
-
 export const DescriptionTitle = styled.div`
   font-family: ${f.font};
   font-size: 1rem;
@@ -139,5 +141,71 @@ export const SortButton = styled.button`
 `;
 
 export const CommentBlock = styled.div`
-  padding-top: 1rem;
+  padding-top: 0;
+`;
+
+export const TitleDisplay = styled.div`
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #4a2727;
+  font-family: 'Outfit', sans-serif;
+  line-height: 1.3;
+  padding: 7px 7px 8px;
+`;
+
+export const DescriptionDisplay = styled.div`
+  font-size: 0.875rem;
+  color: #725757;
+  font-family: 'Outfit', sans-serif;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  & * {
+    max-width: 100%;
+    overflow-wrap: break-word;
+  }
+
+`;
+
+export const DescriptionWrapper = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border: 2px solid #ececec;
+  border-radius: 8px;
+  overflow: hidden;
+  min-height: 324px;     // минимальная высота, чтобы не схлопывалась
+`;
+
+export const RelationsBlock = styled.div`
+  margin-top: 1rem;
+`;
+
+export const SectionTitle = styled.div`
+  font-size: 1rem;
+  font-weight: 500;
+  color: #4a2727;
+  font-family: 'Outfit', sans-serif;
+  margin-bottom: 0.5rem;
+`;
+
+export const RelationItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+`;
+
+export const RelationType = styled.span`
+  background: #ebe7e7;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #5e3f3f;
+`;
+export const ActionsRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
 `;

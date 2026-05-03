@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from 'react';
+import React, { Fragment, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import api from 'shared/utils/api';
 import useCurrentUser from 'shared/hooks/currentUser';
@@ -7,22 +7,17 @@ import BodyForm from '../BodyForm';
 import ProTip from './ProTip';
 import { Create, UserAvatar, Right, FakeTextarea } from './Styles';
 
-const propTypes = {
-  issueId: PropTypes.number.isRequired,
-  fetchIssue: PropTypes.func.isRequired,
-};
-
-const ProjectBoardIssueDetailsCommentsCreate = ({ issueId, fetchIssue }) => {
+const ProjectBoardIssueDetailsCommentsCreate = ({ issueId, fetchIssue, currentUser }) => {
   const [isFormOpen, setFormOpen] = useState(false);
   const [isCreating, setCreating] = useState(false);
   const [body, setBody] = useState('');
-  const { currentUser } = useCurrentUser();
+
+  const userData = currentUser; // берём из пропса
 
   const handleCommentCreate = async () => {
     if (!body.trim()) return;
     try {
       setCreating(true);
-      // Отправляем notes через PUT /issues/:id.json
       await api.put(`/issues/${issueId}.json`, {
         issue: { notes: body }
       });
@@ -38,7 +33,12 @@ const ProjectBoardIssueDetailsCommentsCreate = ({ issueId, fetchIssue }) => {
 
   return (
     <Create>
-      {currentUser && <UserAvatar name={currentUser.name} avatarUrl={currentUser.avatarUrl} />}
+      {userData && (
+        <UserAvatar
+          name={userData.name}
+          avatarUrl={userData.avatarUrl}
+        />
+      )}
       <Right>
         {isFormOpen ? (
           <BodyForm
@@ -59,5 +59,10 @@ const ProjectBoardIssueDetailsCommentsCreate = ({ issueId, fetchIssue }) => {
   );
 };
 
-ProjectBoardIssueDetailsCommentsCreate.propTypes = propTypes;
+
+ProjectBoardIssueDetailsCommentsCreate.propTypes = {
+  issueId: PropTypes.number.isRequired,
+  fetchIssue: PropTypes.func.isRequired,
+  currentUser: PropTypes.object,
+};
 export default ProjectBoardIssueDetailsCommentsCreate;

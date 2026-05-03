@@ -32,7 +32,7 @@ export const Issue = styled.div`
 export const Title = styled.p`
   ${font.regular}
   font-size: 17.5px;       /* 14 * 1.25 */
-  color: ${color.textDark};
+  color: ${color.textMedium};
   padding-bottom: 12.5px;  /* 10 * 1.25 */
   text-align: left;
   line-height: 1.4;

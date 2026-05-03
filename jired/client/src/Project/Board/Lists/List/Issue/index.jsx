@@ -26,7 +26,7 @@ const priorityIconMap = {
 // Функция для поиска иконки по приоритету (принимает issue и массив приоритетов)
 const getPriorityMeta = (issue, priorities) => {
   // Берём id приоритета из вложенного объекта (Redmine API) или flat-поля
-  const priorityId = issue?.priority?.id || issue?.priority_id;
+  const priorityId = issue?.priority_id ?? issue?.priority?.id;
   if (!priorityId || !priorities?.length) return null;
 
   // Находим объект приоритета по id

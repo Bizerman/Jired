@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import useCurrentUser from 'shared/hooks/currentUser';
 import Title from '../Title';
 import Description from '../Description';
 import Comments from '../Comments';
+import RelationModal from '../RelationModal';
 import {
   LeftContainer,
   MainBlock,
@@ -21,73 +21,130 @@ import {
   FilterButton,
   SortButton,
   CommentBlock,
+  TitleDisplay,
+  DescriptionDisplay,
+  DescriptionWrapper,
+  RelationsBlock,
+  SectionTitle,
+  RelationItem,
+  RelationType,
+  ActionsRow,
 } from './Styles';
 
-const LeftPanel = ({ issue, updateIssue, fetchIssue }) => {
+const LeftPanel = ({ issue, updateIssue, fetchIssue, isEditing, currentUser, statuses, priorities}) => {
   const [activeFilter, setActiveFilter] = useState('All');
-  const { currentUser } = useCurrentUser();
-
+  const [sortOrder, setSortOrder] = useState('newest');
+  const [relationModalOpen, setRelationModalOpen] = useState(false);
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    return () => { isMountedRef.current = false; };
+  }, []);
+  const handleRelationCreated = async () => {
+    await fetchIssue();                      // обновляем данные задачи (включая связи)
+    if (isMountedRef.current) {
+      setRelationModalOpen(false);           // закрываем модалку только если компонент ещё жив
+    }
+  };
   return (
     <LeftContainer>
       <MainBlock>
-        {/* Заголовок + кнопка Add a child issue */}
         <HeaderBlock>
           <TitleRow>
-            <Title issue={issue} updateIssue={updateIssue} />
+            {isEditing ? (
+              <Title issue={issue} updateIssue={updateIssue} />
+            ) : (
+              <TitleDisplay>{issue.subject}</TitleDisplay>
+            )}
           </TitleRow>
-          <AddChildButton>
-            <AddChildIcon>
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <path d="M16.955 11.5714H14.8658V8.51786C14.8658 8.42946 14.7934 8.35714 14.705 8.35714H9.7229V6.42857H11.8925C12.0693 6.42857 12.214 6.28393 12.214 6.10714V0.321429C12.214 0.144643 12.0693 0 11.8925 0H6.10683C5.93004 0 5.7854 0.144643 5.7854 0.321429V6.10714C5.7854 6.28393 5.93004 6.42857 6.10683 6.42857H8.27647V8.35714H3.29433C3.20594 8.35714 3.13362 8.42946 3.13362 8.51786V11.5714H1.04433C0.867543 11.5714 0.7229 11.7161 0.7229 11.8929V17.6786C0.7229 17.8554 0.867543 18 1.04433 18H6.83004C7.00683 18 7.15147 17.8554 7.15147 17.6786V11.8929C7.15147 11.7161 7.00683 11.5714 6.83004 11.5714H4.58004V9.80357H13.4193V11.5714H11.1693C10.9925 11.5714 10.8479 11.7161 10.8479 11.8929V17.6786C10.8479 17.8554 10.9925 18 11.1693 18H16.955C17.1318 18 17.2765 17.8554 17.2765 17.6786V11.8929C17.2765 11.7161 17.1318 11.5714 16.955 11.5714ZM5.62469 13.0982V16.4732H2.24969V13.0982H5.62469ZM7.31219 4.90179V1.52679H10.6872V4.90179H7.31219ZM15.7497 16.4732H12.3747V13.0982H15.7497V16.4732Z" fill="#3F3F3F"/>
-              </svg>
-            </AddChildIcon>
-            Add a child issue
-          </AddChildButton>
+          {!isEditing && (
+            <ActionsRow>
+              <AddChildButton>
+                <AddChildIcon>
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <path d="M16.955 11.5714H14.8658V8.51786C14.8658 8.42946 14.7934 8.35714 14.705 8.35714H9.7229V6.42857H11.8925C12.0693 6.42857 12.214 6.28393 12.214 6.10714V0.321429C12.214 0.144643 12.0693 0 11.8925 0H6.10683C5.93004 0 5.7854 0.144643 5.7854 0.321429V6.10714C5.7854 6.28393 5.93004 6.42857 6.10683 6.42857H8.27647V8.35714H3.29433C3.20594 8.35714 3.13362 8.42946 3.13362 8.51786V11.5714H1.04433C0.867543 11.5714 0.7229 11.7161 0.7229 11.8929V17.6786C0.7229 17.8554 0.867543 18 1.04433 18H6.83004C7.00683 18 7.15147 17.8554 7.15147 17.6786V11.8929C7.15147 11.7161 7.00683 11.5714 6.83004 11.5714H4.58004V9.80357H13.4193V11.5714H11.1693C10.9925 11.5714 10.8479 11.7161 10.8479 11.8929V17.6786C10.8479 17.8554 10.9925 18 11.1693 18H16.955C17.1318 18 17.2765 17.8554 17.2765 17.6786V11.8929C17.2765 11.7161 17.1318 11.5714 16.955 11.5714ZM5.62469 13.0982V16.4732H2.24969V13.0982H5.62469ZM7.31219 4.90179V1.52679H10.6872V4.90179H7.31219ZM15.7497 16.4732H12.3747V13.0982H15.7497V16.4732Z" fill="#3F3F3F"/>
+                  </svg>
+                </AddChildIcon>
+                Add a child issue
+              </AddChildButton>
+              <AddChildButton onClick={() => setRelationModalOpen(true)}>
+                <AddChildIcon>
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <path d="M10 2H8V10H2V12H8V20H10V12H16V10H10V2Z" fill="#3F3F3F"/>
+                  </svg>
+                </AddChildIcon>
+                Add relation
+              </AddChildButton>
+            </ActionsRow>
+          )}
+          {!isEditing && issue.relations && issue.relations.length > 0 && (
+            <RelationsBlock>
+              <SectionTitle>Relations</SectionTitle>
+              {issue.relations.map(rel => (
+                <RelationItem key={rel.id}>
+                  <RelationType>{rel.relation_type}</RelationType>
+                  <span>LP-{rel.issue_to_id}</span>
+                </RelationItem>
+              ))}
+            </RelationsBlock>
+          )}
         </HeaderBlock>
-
-        {/* Описание */}
         <DescriptionBlock>
           <DescriptionTitle>Description</DescriptionTitle>
-          <Description issue={issue} updateIssue={updateIssue} />
+          {isEditing ? (
+            <DescriptionWrapper>
+              <Description issue={issue} updateIssue={updateIssue} />
+            </DescriptionWrapper>
+          ) : (
+            <DescriptionDisplay
+              dangerouslySetInnerHTML={{ __html: issue.description || 'No description' }}
+            />
+          )}
         </DescriptionBlock>
       </MainBlock>
 
-      {/* Активность и фильтры */}
-      <ActivitySection>
-        <ActivityHeader>Activity</ActivityHeader>
+      {!isEditing && (
+        <>
+          <ActivitySection>
+            <ActivityHeader>Activity</ActivityHeader>
+            <ShowRow>
+              <ShowLabel>Show:</ShowLabel>
+              <FilterButtons>
+                <FilterButton active={activeFilter === 'All'} onClick={() => setActiveFilter('All')}>All</FilterButton>
+                <FilterButton active={activeFilter === 'Comments'} onClick={() => setActiveFilter('Comments')}>Comments</FilterButton>
+                <FilterButton active={activeFilter === 'History'} onClick={() => setActiveFilter('History')}>History</FilterButton>
+                <FilterButton active={activeFilter === 'Work log'} onClick={() => setActiveFilter('Work log')}>Work log</FilterButton>
+              </FilterButtons>
+              <SortButton onClick={() => setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest')}>
+                {sortOrder === 'newest' ? 'Newest first' : 'Oldest first'}
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  {/* ... ваш SVG ... */}
+                </svg>
+              </SortButton>
+            </ShowRow>
+          </ActivitySection>
+          <CommentBlock>
+            <Comments 
+              issue={issue} 
+              fetchIssue={fetchIssue} 
+              currentUser={currentUser} 
+              activeFilter={activeFilter} 
+              statuses={statuses}  
+              priorities={priorities}
+              sortOrder={sortOrder}
+            />
+          </CommentBlock>
+        </>
+      )}
 
-        {/* Show: + кнопки + сортировка — теперь в одной строке */}
-        <ShowRow>
-          <ShowLabel>Show:</ShowLabel>
-          <FilterButtons>
-            <FilterButton active={activeFilter === 'All'} onClick={() => setActiveFilter('All')}>All</FilterButton>
-            <FilterButton active={activeFilter === 'Comments'} onClick={() => setActiveFilter('Comments')}>Comments</FilterButton>
-            <FilterButton active={activeFilter === 'History'} onClick={() => setActiveFilter('History')}>History</FilterButton>
-            <FilterButton active={activeFilter === 'Work log'} onClick={() => setActiveFilter('Work log')}>Work log</FilterButton>
-          </FilterButtons>
-          <SortButton>
-            Newest first
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M4.66667 0H2.66667C1.95942 0 1.28115 0.280952 0.781049 0.781049C0.280952 1.28115 0 1.95942 0 2.66667L0 4.66667C0 5.37391 0.280952 6.05219 0.781049 6.55229C1.28115 7.05238 1.95942 7.33333 2.66667 7.33333H4.66667C5.37391 7.33333 6.05219 7.05238 6.55229 6.55229C7.05238 6.05219 7.33333 5.37391 7.33333 4.66667V2.66667C7.33333 1.95942 7.05238 1.28115 6.55229 0.781049C6.05219 0.280952 5.37391 0 4.66667 0V0ZM6 4.66667C6 5.02029 5.85952 5.35943 5.60948 5.60948C5.35943 5.85952 5.02029 6 4.66667 6H2.66667C2.31304 6 1.97391 5.85952 1.72386 5.60948C1.47381 5.35943 1.33333 5.02029 1.33333 4.66667V2.66667C1.33333 2.31304 1.47381 1.97391 1.72386 1.72386C1.97391 1.47381 2.31304 1.33333 2.66667 1.33333H4.66667C5.02029 1.33333 5.35943 1.47381 5.60948 1.72386C5.85952 1.97391 6 2.31304 6 2.66667V4.66667Z" fill="#5E3F3F"/>
-              <path d="M4.66667 8.66669H2.66667C1.95942 8.66669 1.28115 8.94764 0.781049 9.44774C0.280952 9.94783 0 10.6261 0 11.3334L0 13.3334C0 14.0406 0.280952 14.7189 0.781049 15.219C1.28115 15.7191 1.95942 16 2.66667 16H4.66667C5.37391 16 6.05219 15.7191 6.55229 15.219C7.05238 14.7189 7.33333 14.0406 7.33333 13.3334V11.3334C7.33333 10.6261 7.05238 9.94783 6.55229 9.44774C6.05219 8.94764 5.37391 8.66669 4.66667 8.66669V8.66669ZM6 13.3334C6 13.687 5.85952 14.0261 5.60948 14.2762C5.35943 14.5262 5.02029 14.6667 4.66667 14.6667H2.66667C2.31304 14.6667 1.97391 14.5262 1.72386 14.2762C1.47381 14.0261 1.33333 13.687 1.33333 13.3334V11.3334C1.33333 10.9797 1.47381 10.6406 1.72386 10.3905C1.97391 10.1405 2.31304 10 2.66667 10H4.66667C5.02029 10 5.35943 10.1405 5.60948 10.3905C5.85952 10.6406 6 10.9797 6 11.3334V13.3334Z" fill="#5E3F3F"/>
-              <path d="M14.862 12.6993L13.3334 14.226V1.75531L14.862 3.28198C14.924 3.34388 14.9975 3.39297 15.0784 3.42645C15.1593 3.45993 15.246 3.47715 15.3336 3.47712C15.4212 3.47708 15.5079 3.45981 15.5888 3.42627C15.6697 3.39273 15.7431 3.34359 15.805 3.28165C15.8669 3.21971 15.916 3.14618 15.9495 3.06527C15.983 2.98436 16.0002 2.89764 16.0002 2.81008C16.0001 2.72251 15.9829 2.63581 15.9493 2.55492C15.9158 2.47403 15.8667 2.40054 15.8047 2.33865L14.08 0.616645C13.705 0.242111 13.1967 0.0317383 12.6667 0.0317383C12.1367 0.0317383 11.6284 0.242111 11.2534 0.616645L9.52872 2.33865C9.46678 2.40054 9.41764 2.47403 9.3841 2.55492C9.35056 2.63581 9.33328 2.72251 9.33325 2.81008C9.33322 2.89764 9.35044 2.98436 9.38392 3.06527C9.4174 3.14618 9.46649 3.21971 9.52839 3.28165C9.59028 3.34359 9.66377 3.39273 9.74466 3.42627C9.82555 3.45981 9.91225 3.47708 9.99982 3.47712C10.0874 3.47715 10.1741 3.45993 10.255 3.42645C10.3359 3.39297 10.4094 3.34388 10.4714 3.28198L12 1.75531V14.226L10.4714 12.6993C10.4094 12.6374 10.3359 12.5883 10.255 12.5549C10.1741 12.5214 10.0874 12.5042 9.99982 12.5042C9.91225 12.5042 9.82555 12.5215 9.74466 12.555C9.66377 12.5886 9.59028 12.6377 9.52839 12.6997C9.46649 12.7616 9.4174 12.8351 9.38392 12.916C9.35044 12.9969 9.33322 13.0837 9.33325 13.1712C9.33328 13.2588 9.35056 13.3455 9.3841 13.4264C9.41764 13.5073 9.46678 13.5808 9.52872 13.6427L11.2534 15.3647C11.6284 15.7392 12.1367 15.9496 12.6667 15.9496C13.1967 15.9496 13.705 15.7392 14.08 15.3647L15.8047 13.6427C15.8667 13.5808 15.9158 13.5073 15.9493 13.4264C15.9829 13.3455 16.0001 13.2588 16.0002 13.1712C16.0002 13.0837 15.983 12.9969 15.9495 12.916C15.916 12.8351 15.8669 12.7616 15.805 12.6997C15.7431 12.6377 15.6697 12.5886 15.5888 12.555C15.5079 12.5215 15.4212 12.5042 15.3336 12.5042C15.246 12.5042 15.1593 12.5214 15.0784 12.5549C14.9975 12.5883 14.924 12.6374 14.862 12.6993V12.6993Z" fill="#5E3F3F"/>
-            </svg>
-          </SortButton>
-        </ShowRow>
-      </ActivitySection>
-
-      {/* Комментарии */}
-      <CommentBlock>
-        <Comments issue={issue} fetchIssue={fetchIssue} />
-      </CommentBlock>
+      {relationModalOpen && (
+        <RelationModal
+          issue={issue}
+          onClose={() => setRelationModalOpen(false)}
+          onCreated={handleRelationCreated}
+        />
+      )}
     </LeftContainer>
   );
-};
-
-LeftPanel.propTypes = {
-  issue: PropTypes.object.isRequired,
-  updateIssue: PropTypes.func.isRequired,
-  fetchIssue: PropTypes.func.isRequired,
 };
 
 export default LeftPanel;
