@@ -13,15 +13,15 @@ import {
   StyledInput,
   StyledSelect,
   StyledTextArea,
+  FormLayout,
+  MainColumn,
+  SidebarColumn,
   FieldRow,
   Actions,
   SubmitButton,
   CancelButton,
   AttachmentZone,
   IconBox,
-  CreateStatusDialog,
-  CreateStatusInput,
-  CreateStatusActions,
 } from './Styles';
 
 const propTypes = {
@@ -39,12 +39,6 @@ const IssueCreate = ({ project, fetchProject, onCreate, modalClose }) => {
   const [priorities, setPriorities] = useState([]);
   const [loadingMeta, setLoadingMeta] = useState(true);
   const [configMessage, setConfigMessage] = useState('');
-
-  // создание нового приоритета
-  const [showCreatePriority, setShowCreatePriority] = useState(false);
-  const [newPriorityName, setNewPriorityName] = useState('');
-  const [newPriorityIsDefault, setNewPriorityIsDefault] = useState(false);
-  const [creatingPriority, setCreatingPriority] = useState(false);
 
   // ID статуса Backlog
   const [backlogStatusId, setBacklogStatusId] = useState(null);
@@ -71,7 +65,7 @@ const IssueCreate = ({ project, fetchProject, onCreate, modalClose }) => {
     }
   };
 
-  // ─── загрузка метаданных и инициализация статусов ────────────
+  // ─── загрузка метаданных и инициализация статусов/приоритетов ────
   const fetchMeta = async () => {
     setLoadingMeta(true);
     setConfigMessage('');
@@ -86,10 +80,9 @@ const IssueCreate = ({ project, fetchProject, onCreate, modalClose }) => {
       let currentStatuses = sRes.issue_statuses || [];
       let currentPriorities = pRes.issue_priorities || [];
 
-      // Проверяем наличие каждого из трёх нужных статусов
+      // 1. Проверяем/создаём обязательные статусы
       const neededStatuses = [
         { name: 'Backlog', is_closed: false },
-        { name: 'Selected', is_closed: false },
         { name: 'In Progress', is_closed: false },
         { name: 'Done', is_closed: true },
       ];
@@ -121,7 +114,37 @@ const IssueCreate = ({ project, fetchProject, onCreate, modalClose }) => {
         throw new Error('Backlog status is missing and could not be created.');
       }
 
-      // Если трекеров нет – создаём стандартный Task
+      // 2. Проверяем/создаём стандартные приоритеты
+      const neededPriorities = [
+        { name: 'Low', is_default: false },
+        { name: 'Medium', is_default: true },
+        { name: 'High', is_default: false },
+        { name: 'Critical', is_default: false },
+      ];
+
+      for (const neededPriority of neededPriorities) {
+        const exists = currentPriorities.some(
+          p => p.name.toLowerCase() === neededPriority.name.toLowerCase()
+        );
+        if (!exists) {
+          try {
+            setConfigMessage(`Creating priority "${neededPriority.name}"...`);
+            const { enumeration } = await api.post('/extended_api/enumerations.json', {
+              enumeration: {
+                name: neededPriority.name,
+                type: 'IssuePriority',
+                is_default: neededPriority.is_default,
+                active: true,
+              },
+            });
+            currentPriorities.push(enumeration);
+          } catch (e) {
+            console.warn(`Could not create priority "${neededPriority.name}"`, e);
+          }
+        }
+      }
+
+      // 3. Если трекеров нет – создаём Task
       if (currentTrackers.length === 0) {
         setConfigMessage('Creating default tracker...');
         const defaultStatusId = currentStatuses[0]?.id;
@@ -130,14 +153,13 @@ const IssueCreate = ({ project, fetchProject, onCreate, modalClose }) => {
         currentTrackers = [newTracker];
         toast.success('Default tracker "Task" created.');
 
-        // Автоматически настраиваем workflow для роли администратора (или первой не-встроенной)
+        // Настройка workflow для администратора
         try {
-          const response = await api.post('/workflows.json', {
+          await api.post('/workflows.json', {
             tracker_id: newTracker.id,
           });
           toast.success('Workflow configured.');
         } catch (e) {
-          // Посмотрим, что именно ответил Redmine
           console.error('Workflow error details:', e.response?.data || e);
           toast.error('Workflow setup failed. See console for details.');
         }
@@ -170,35 +192,6 @@ const IssueCreate = ({ project, fetchProject, onCreate, modalClose }) => {
     fetchMeta();
   }, []);
 
-  // ─── создание приоритета ─────────────────────────────────────
-  const handleCreatePriority = async () => {
-    if (!newPriorityName.trim()) return;
-    setCreatingPriority(true);
-    try {
-      const response = await api.post('/extended_api/enumerations.json', {
-        enumeration: {
-          name: newPriorityName.trim(),
-          type: 'IssuePriority',
-          is_default: newPriorityIsDefault || false,
-          active: true,
-        },
-      });
-      const newPriority = response.enumeration || response;
-      if (isMountedRef.current) {
-        setPriorities(prev => [...prev, newPriority]);
-        toast.success(`Priority "${newPriority.name}" created.`);
-        setShowCreatePriority(false);
-        setNewPriorityName('');
-        setNewPriorityIsDefault(false);
-      }
-    } catch (error) {
-      console.error('Failed to create priority:', error);
-      if (isMountedRef.current) toast.error('Could not create priority.');
-    } finally {
-      if (isMountedRef.current) setCreatingPriority(false);
-    }
-  };
-
   // ─── создание задачи (статус всегда Backlog) ─────────────────
   const handleCreate = async (values) => {
     if (!backlogStatusId) {
@@ -210,7 +203,7 @@ const IssueCreate = ({ project, fetchProject, onCreate, modalClose }) => {
       const payload = {
         issue: {
           project_id: project.id,
-          tracker_id: values.tracker_id,
+          tracker_id: trackers[0]?.id,          // Task всегда
           subject: values.subject,
           description: values.description || '',
           status_id: backlogStatusId,
@@ -218,6 +211,9 @@ const IssueCreate = ({ project, fetchProject, onCreate, modalClose }) => {
           assigned_to_id: values.assigned_to_id || undefined,
           estimated_hours: values.estimated_hours || undefined,
           due_date: values.due_date || undefined,
+          start_date: values.start_date || undefined,
+          done_ratio: values.done_ratio ? Number(values.done_ratio) : 0,
+          parent_issue_id: values.parent_issue_id ? Number(values.parent_issue_id) : undefined,
         },
       };
       await api.post('/issues.json', payload);
@@ -233,7 +229,6 @@ const IssueCreate = ({ project, fetchProject, onCreate, modalClose }) => {
   };
 
   // ─── подготовка опций ────────────────────────────────────────
-  const trackerOptions = trackers.map(t => ({ value: t.id, label: t.name }));
   const priorityOptions = priorities.map(p => ({ value: p.id, label: p.name }));
   const assigneeOptions = (project.users || []).map(u => ({ value: u.id, label: u.name }));
 
@@ -259,15 +254,16 @@ const IssueCreate = ({ project, fetchProject, onCreate, modalClose }) => {
       initialValues={{
         subject: '',
         description: '',
-        tracker_id: trackers[0]?.id,
         priority_id: priorities.find(p => p.is_default)?.id || priorities[0]?.id,
         assigned_to_id: '',
         estimated_hours: '',
         due_date: '',
+        start_date: '',
+        done_ratio: 0,
+        parent_issue_id: '',
       }}
       validations={{
         subject: [Form.is.required(), Form.is.maxLength(255)],
-        tracker_id: [Form.is.required()],
         priority_id: [Form.is.required()],
       }}
       onSubmit={handleCreate}
@@ -278,144 +274,113 @@ const IssueCreate = ({ project, fetchProject, onCreate, modalClose }) => {
             <IconBox>
               <img src={checkboxIcon} alt="" />
             </IconBox>
-            <FormHeading>New Issue</FormHeading>
+            <FormHeading>Create Issue</FormHeading>
           </FormHeadingWrapper>
 
-          <div>
-            <FieldLabel>Tracker *</FieldLabel>
-            <Form.Field.Select name="tracker_id" options={trackerOptions} component={StyledSelect} />
-          </div>
-
-          <div>
-            <FieldLabel>Subject *</FieldLabel>
-            <Form.Field.Input
-              name="subject"
-              placeholder="Briefly describe the task"
-              component={StyledInput}
-              autoFocus
-            />
-          </div>
-
-          <div>
-            <FieldLabel>Description</FieldLabel>
-            <Form.Field.Textarea
-              name="description"
-              placeholder="Details, steps to reproduce, expected result..."
-              component={StyledTextArea}
-            />
-          </div>
-
-          <div>
-            <FieldLabel>Attachments</FieldLabel>
-            <AttachmentZone onClick={() => setHasAttachment(!hasAttachment)} hasFile={hasAttachment}>
-              <Icon type="attach" size={16} />
-              {hasAttachment ? 'File_TOR.pdf (Attached)' : 'Click to attach files or drag & drop here'}
-            </AttachmentZone>
-          </div>
-
-          <FieldRow>
-            <div style={{ position: 'relative' }}>
-              <FieldLabel>Priority</FieldLabel>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <Form.Field.Select name="priority_id" options={priorityOptions} component={StyledSelect} />
-                <button
-                  type="button"
-                  onClick={() => setShowCreatePriority(true)}
-                  style={{
-                    background: 'none',
-                    border: '1px solid #ececec',
-                    borderRadius: 4,
-                    padding: '4px 8px',
-                    cursor: 'pointer',
-                    color: '#AD1E1E',
-                    fontSize: 14,
-                    whiteSpace: 'nowrap',
-                  }}
-                  title="Create new priority"
-                >
-                  + New priority
-                </button>
+          <FormLayout>
+            {/* ЛЕВАЯ КОЛОНКА: Основной контент */}
+            <MainColumn>
+              <div>
+                <FieldLabel>Summary *</FieldLabel>
+                <Form.Field.Input
+                  name="subject"
+                  placeholder="What needs to be done?"
+                  component={StyledInput}
+                  autoFocus
+                />
               </div>
 
-              {showCreatePriority && (
-                <CreateStatusDialog>
-                  <h4 style={{ margin: '0 0 8px', fontWeight: 500 }}>Create issue priority</h4>
-                  <CreateStatusInput
-                    type="text"
-                    placeholder="Priority name (e.g. Urgent)"
-                    value={newPriorityName}
-                    onChange={(e) => setNewPriorityName(e.target.value)}
-                    autoFocus
+              <div>
+                <FieldLabel>Description</FieldLabel>
+                <Form.Field.Textarea
+                  name="description"
+                  placeholder="Add details, steps to reproduce, or acceptance criteria..."
+                  component={StyledTextArea}
+                />
+              </div>
+
+              <div>
+                <FieldLabel>Attachments</FieldLabel>
+                <AttachmentZone onClick={() => setHasAttachment(!hasAttachment)} hasFile={hasAttachment}>
+                  <Icon type="attach" size={16} />
+                  {hasAttachment ? 'File_TOR.pdf (Attached)' : 'Drop files here or click to browse'}
+                </AttachmentZone>
+              </div>
+
+              <div>
+                <FieldLabel>Parent Issue</FieldLabel>
+                <Form.Field.Input
+                  name="parent_issue_id"
+                  type="text"
+                  placeholder="Search by issue key or ID..."
+                  component={StyledInput}
+                />
+              </div>
+            </MainColumn>
+
+            {/* ПРАВАЯ КОЛОНКА: Атрибуты */}
+            <SidebarColumn>
+              <div>
+                <FieldLabel>Assignee</FieldLabel>
+                <Form.Field.Select
+                  name="assigned_to_id"
+                  options={[{ value: '', label: 'Unassigned' }, ...assigneeOptions]}
+                  component={StyledSelect}
+                />
+              </div>
+
+              <div>
+                <FieldLabel>Priority</FieldLabel>
+                <Form.Field.Select 
+                  name="priority_id" 
+                  options={priorityOptions} 
+                  component={StyledSelect} 
+                />
+              </div>
+
+              <FieldRow>
+                <div>
+                  <FieldLabel>Start date</FieldLabel>
+                  <Form.Field.Input name="start_date" type="date" component={StyledInput} />
+                </div>
+                <div>
+                  <FieldLabel>Due date</FieldLabel>
+                  <Form.Field.Input name="due_date" type="date" component={StyledInput} />
+                </div>
+              </FieldRow>
+
+              <FieldRow>
+                <div>
+                  <FieldLabel>Original estimate</FieldLabel>
+                  <Form.Field.Input
+                    name="estimated_hours"
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    placeholder="e.g. 4h"
+                    component={StyledInput}
                   />
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '8px 0', fontSize: 14 }}>
-                    <input
-                      type="checkbox"
-                      checked={newPriorityIsDefault}
-                      onChange={(e) => setNewPriorityIsDefault(e.target.checked)}
-                    />
-                    Set as default priority
-                  </label>
-                  <CreateStatusActions>
-                    <button
-                      type="button"
-                      onClick={() => { setShowCreatePriority(false); setNewPriorityName(''); }}
-                      disabled={creatingPriority}
-                      style={{ background: 'none', border: '1px solid #ccc', borderRadius: 4, padding: '4px 12px', cursor: 'pointer' }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCreatePriority}
-                      disabled={creatingPriority || !newPriorityName.trim()}
-                      style={{
-                        background: '#AD1E1E',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: 4,
-                        padding: '4px 12px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {creatingPriority ? 'Creating…' : 'Create'}
-                    </button>
-                  </CreateStatusActions>
-                </CreateStatusDialog>
-              )}
-            </div>
-          </FieldRow>
-
-          <div>
-            <FieldLabel>Assignee</FieldLabel>
-            <Form.Field.Select
-              name="assigned_to_id"
-              options={[{ value: '', label: 'Unassigned' }, ...assigneeOptions]}
-              component={StyledSelect}
-            />
-          </div>
-
-          <FieldRow>
-            <div>
-              <FieldLabel>Estimated hours</FieldLabel>
-              <Form.Field.Input
-                name="estimated_hours"
-                type="number"
-                step="0.5"
-                min="0"
-                placeholder="e.g. 2.5"
-                component={StyledInput}
-              />
-            </div>
-            <div>
-              <FieldLabel>Due date</FieldLabel>
-              <Form.Field.Input name="due_date" type="date" component={StyledInput} />
-            </div>
-          </FieldRow>
+                </div>
+                <div>
+                  <FieldLabel>Done (%)</FieldLabel>
+                  <Form.Field.Input
+                    name="done_ratio"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    placeholder="0"
+                    component={StyledInput}
+                  />
+                </div>
+              </FieldRow>
+            </SidebarColumn>
+          </FormLayout>
 
           <Actions>
             <CancelButton type="button" onClick={modalClose}>Cancel</CancelButton>
             <SubmitButton onClick={formik.submitForm} disabled={isCreating || formik.isSubmitting}>
-              {isCreating ? 'Saving...' : 'Create Issue'}
+              {isCreating ? 'Creating...' : 'Create'}
             </SubmitButton>
           </Actions>
         </FormElement>

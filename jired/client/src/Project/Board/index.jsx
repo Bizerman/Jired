@@ -24,7 +24,7 @@ const defaultFilters = {
   recent: false,
 };
 
-const ProjectBoard = ({ project, fetchProject, updateLocalProjectIssues }) => {
+const ProjectBoard = ({ project, fetchProject, updateLocalProjectIssues, moveIssueInList, moveIssuesInColumn }) => {
   const match = useRouteMatch();
   const history = useHistory();
 
@@ -45,14 +45,16 @@ const ProjectBoard = ({ project, fetchProject, updateLocalProjectIssues }) => {
         project={project}
         filters={filters}
         updateLocalProjectIssues={updateLocalProjectIssues}
+        moveIssueInList={moveIssueInList}
+        moveIssuesInColumn={moveIssuesInColumn}
       />
       <Route
         path={`${match.path}/issues/:issueId`}
         render={routeProps => (
           <Modal
             isOpen
+            width="60vw"
             testid="modal:issue-details"
-            width={1040}
             withCloseIcon={false}
             onClose={() => history.push(match.url)}
             renderContent={modal => (

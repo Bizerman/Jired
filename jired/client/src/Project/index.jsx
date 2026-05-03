@@ -97,7 +97,7 @@ const Project = () => {
               ...issue,
               title: issue.subject || '',
               type: foundTracker === 'Bug' ? 'bug' : foundTracker === 'Story' ? 'story' : 'task',
-              priority: String(foundPriority),
+              priority_id: issue.priority?.id,
               userIds: issue.assigned_to ? [issue.assigned_to.id] : [],
               statusKey,
               status_id: issue.status?.id,
@@ -132,7 +132,64 @@ const Project = () => {
   const setLocalProjectData = useCallback((updater) => {
     setProjectData(prev => updater(prev));
   }, []);
+  const moveIssueInList = useCallback((statusKey, sourceIndex, destinationIndex) => {
+    setLocalProjectData(prevData => {
+      const issues = [...prevData.project.issues];
 
+      // Индексы всех задач с данным статусом в общем массиве
+      const columnIndices = issues
+        .map((issue, idx) => (issue.statusKey === statusKey ? idx : null))
+        .filter(idx => idx !== null);
+
+      // Получаем реальные индексы в общем массиве
+      const sourceGlobalIdx = columnIndices[sourceIndex];
+      const destGlobalIdx = columnIndices[destinationIndex];
+
+      // Перемещаем элемент внутри массива
+      const [moved] = issues.splice(sourceGlobalIdx, 1);
+      issues.splice(destGlobalIdx, 0, moved);
+
+      return {
+        project: {
+          ...prevData.project,
+          issues,
+        },
+      };
+    });
+}, []);
+const moveIssuesInColumn = useCallback((statusKey, orderedIds) => {
+  setLocalProjectData(prevData => {
+    const issues = [...prevData.project.issues];
+
+    // Собираем задачи других колонок с сохранением порядка
+    const otherIssues = issues.filter(i => i.statusKey !== statusKey);
+    // Выбираем задачи этой колонки и упорядочиваем согласно orderedIds
+    const colIssuesMap = new Map(issues.filter(i => i.statusKey === statusKey).map(i => [i.id, i]));
+    const newColIssues = orderedIds.map(id => colIssuesMap.get(id)).filter(Boolean);
+
+    // Находим позицию, куда вставить колонку (после предыдущих колонок, сохраняя общий порядок статусов)
+    // Простейший способ: восстановить массив, пройдя по исходному порядку статусов
+    const statusOrder = Object.values(IssueStatus);
+    let result = [];
+    for (const st of statusOrder) {
+      if (st === statusKey) {
+        result.push(...newColIssues);
+      } else {
+        // Добавляем задачи этой колонки из otherIssues, сохраняя их изначальный порядок
+        // otherIssues уже в правильном порядке
+        result.push(...otherIssues.filter(i => i.statusKey === st));
+      }
+    }
+    // На всякий случай добавляем оставшиеся (если есть статусы вне порядка)
+    // но в нашем случае statusOrder содержит все статусы
+    return {
+      project: {
+        ...prevData.project,
+        issues: result,
+      },
+    };
+  });
+}, [setLocalProjectData]);
   const isMountedRef = useRef(false);
   useEffect(() => {
     isMountedRef.current = true;
@@ -246,6 +303,8 @@ const Project = () => {
             project={project}
             fetchProject={() => fetchProject(`/projects/${project.id}.json?include=issues`)}
             updateLocalProjectIssues={updateLocalProjectIssues}
+            moveIssueInList={moveIssueInList}
+            moveIssuesInColumn={moveIssuesInColumn}
           />
         )}
       />
@@ -273,7 +332,7 @@ const Project = () => {
         <Modal
           isOpen
           testid="modal:issue-create"
-          width={800}
+          width={1040}
           withCloseIcon={false}
           onClose={issueCreateModalHelpers.close}
           renderContent={modal => (

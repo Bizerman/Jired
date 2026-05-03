@@ -1,27 +1,22 @@
 import styled from 'styled-components';
 
-import { color, font } from 'shared/utils/styles';
-
+// Figma: "Pro tip : press M to comment" — 12px, color #5f5f5f
 export const Tip = styled.div`
   display: flex;
   align-items: center;
-  padding-top: 8px;
-  color: ${color.textMedium};
-  ${font.size(13)}
-  strong {
-    padding-right: 4px;
-  }
+  color: #5f5f5f;
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
 `;
 
 export const TipLetter = styled.span`
-  position: relative;
-  top: 1px;
   display: inline-block;
   margin: 0 4px;
   padding: 0 4px;
   border-radius: 2px;
-  color: ${color.textDarkest};
-  background: ${color.backgroundMedium};
-  ${font.bold}
-  ${font.size(12)}
+  color: #4a2727;
+  background: #ebe7e7;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: 'Outfit', sans-serif;
 `;

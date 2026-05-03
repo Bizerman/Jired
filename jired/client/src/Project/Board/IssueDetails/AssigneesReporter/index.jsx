@@ -1,71 +1,72 @@
 import React, { Fragment } from 'react';
 import PropTypes from 'prop-types';
-
-import { Avatar, Select, Icon } from 'shared/components';
-
+import { Select, Avatar } from 'shared/components';
 import { SectionTitle } from '../Styles';
-import { User, Username } from './Styles';
 
 const propTypes = {
   issue: PropTypes.object.isRequired,
-  updateIssue: PropTypes.func.isRequired,
   projectUsers: PropTypes.array.isRequired,
+  updateIssue: PropTypes.func.isRequired,
 };
 
-const ProjectBoardIssueDetailsAssigneesReporter = ({ issue, updateIssue, projectUsers }) => {
-  const getUserById = userId => projectUsers.find(user => user.id === userId);
+const ProjectBoardIssueDetailsAssigneesReporter = ({ issue, projectUsers, updateIssue }) => {
+  const assignee = issue.assigned_to;
+  const author = issue.author;
 
-  const userOptions = projectUsers.map(user => ({ value: user.id, label: user.name }));
+  const userOptions = [
+    { value: '', label: 'Unassigned' },
+    ...projectUsers.map(u => ({ value: u.id, label: u.name })),
+  ];
+
+  const handleAssigneeChange = (userId) => {
+    const id = userId === '' ? null : Number(userId);
+    updateIssue({ assigned_to_id: id });
+  };
 
   return (
     <Fragment>
-      <SectionTitle>Assignees</SectionTitle>
+      <SectionTitle>Assignee</SectionTitle>
       <Select
-        isMulti
         variant="empty"
         dropdownWidth={343}
-        placeholder="Unassigned"
-        name="assignees"
-        value={issue.userIds}
+        withClearValue
+        value={assignee?.id || ''}
         options={userOptions}
-        onChange={userIds => {
-          updateIssue({ userIds, users: userIds.map(getUserById) });
+        onChange={handleAssigneeChange}
+        renderValue={({ value }) => {
+          if (!value) return <div>Unassigned</div>;
+          const user = projectUsers.find(u => u.id === Number(value));
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Avatar size={20} avatarUrl={user?.avatarUrl} name={user?.name} />
+              {user?.name}
+            </div>
+          );
         }}
-        renderValue={({ value: userId, removeOptionValue }) =>
-          renderUser(getUserById(userId), true, removeOptionValue)
-        }
-        renderOption={({ value: userId }) => renderUser(getUserById(userId), false)}
+        renderOption={({ value, label }) => {
+          if (!value) return <div>Unassigned</div>;
+          const user = projectUsers.find(u => u.id === Number(value));
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Avatar size={20} avatarUrl={user?.avatarUrl} name={user?.name} />
+              {label}
+            </div>
+          );
+        }}
       />
 
       <SectionTitle>Reporter</SectionTitle>
-      <Select
-        variant="empty"
-        dropdownWidth={343}
-        withClearValue={false}
-        name="reporter"
-        value={issue.reporterId}
-        options={userOptions}
-        onChange={userId => updateIssue({ reporterId: userId })}
-        renderValue={({ value: userId }) => renderUser(getUserById(userId), true)}
-        renderOption={({ value: userId }) => renderUser(getUserById(userId))}
-      />
+      {author ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Avatar size={20} avatarUrl={author.avatarUrl} name={author.name} />
+          {author.name}
+        </div>
+      ) : (
+        <div>Unknown</div>
+      )}
     </Fragment>
   );
 };
 
-const renderUser = (user, isSelectValue, removeOptionValue) => (
-  <User
-    key={user.id}
-    isSelectValue={isSelectValue}
-    withBottomMargin={!!removeOptionValue}
-    onClick={() => removeOptionValue && removeOptionValue()}
-  >
-    <Avatar avatarUrl={user.avatarUrl} name={user.name} size={24} />
-    <Username>{user.name}</Username>
-    {removeOptionValue && <Icon type="close" top={1} />}
-  </User>
-);
-
 ProjectBoardIssueDetailsAssigneesReporter.propTypes = propTypes;
-
 export default ProjectBoardIssueDetailsAssigneesReporter;

@@ -1,9 +1,7 @@
 import React, { useEffect } from 'react';
 import PropTypes from 'prop-types';
-
 import { KeyCodes } from 'shared/constants/keyCodes';
 import { isFocusedElementEditable } from 'shared/utils/browser';
-
 import { Tip, TipLetter } from './Styles';
 
 const propTypes = {
@@ -18,12 +16,8 @@ const ProjectBoardIssueDetailsCommentsCreateProTip = ({ setFormOpen }) => {
         setFormOpen(true);
       }
     };
-
     document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, [setFormOpen]);
 
   return (
@@ -34,5 +28,4 @@ const ProjectBoardIssueDetailsCommentsCreateProTip = ({ setFormOpen }) => {
 };
 
 ProjectBoardIssueDetailsCommentsCreateProTip.propTypes = propTypes;
-
 export default ProjectBoardIssueDetailsCommentsCreateProTip;

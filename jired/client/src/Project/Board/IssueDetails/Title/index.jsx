@@ -1,13 +1,11 @@
 import React, { Fragment, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-
 import { KeyCodes } from 'shared/constants/keyCodes';
 import { is, generateErrors } from 'shared/utils/validation';
-
 import { TitleTextarea, ErrorText } from './Styles';
 
 const propTypes = {
-  issue: PropTypes.object.isRequired,
+  issue: PropTypes.object.isRequired,   // Redmine issue
   updateIssue: PropTypes.func.isRequired,
 };
 
@@ -17,16 +15,17 @@ const ProjectBoardIssueDetailsTitle = ({ issue, updateIssue }) => {
 
   const handleTitleChange = () => {
     setError(null);
+    const newTitle = $titleInputRef.current.value;
+    if (newTitle === issue.subject) return;
 
-    const title = $titleInputRef.current.value;
-    if (title === issue.title) return;
-
-    const errors = generateErrors({ title }, { title: [is.required(), is.maxLength(200)] });
-
+    const errors = generateErrors(
+      { title: newTitle },
+      { title: [is.required(), is.maxLength(255)] }
+    );
     if (errors.title) {
       setError(errors.title);
     } else {
-      updateIssue({ title });
+      updateIssue({ subject: newTitle });
     }
   };
 
@@ -35,7 +34,7 @@ const ProjectBoardIssueDetailsTitle = ({ issue, updateIssue }) => {
       <TitleTextarea
         minRows={1}
         placeholder="Short summary"
-        defaultValue={issue.title}
+        defaultValue={issue.subject}
         ref={$titleInputRef}
         onBlur={handleTitleChange}
         onKeyDown={event => {
@@ -50,5 +49,4 @@ const ProjectBoardIssueDetailsTitle = ({ issue, updateIssue }) => {
 };
 
 ProjectBoardIssueDetailsTitle.propTypes = propTypes;
-
 export default ProjectBoardIssueDetailsTitle;

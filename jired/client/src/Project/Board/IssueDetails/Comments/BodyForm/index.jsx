@@ -1,8 +1,6 @@
 import React, { Fragment, useRef } from 'react';
 import PropTypes from 'prop-types';
-
 import { Textarea } from 'shared/components';
-
 import { Actions, FormButton } from './Styles';
 
 const propTypes = {
@@ -50,5 +48,4 @@ const ProjectBoardIssueDetailsCommentsBodyForm = ({
 };
 
 ProjectBoardIssueDetailsCommentsBodyForm.propTypes = propTypes;
-
 export default ProjectBoardIssueDetailsCommentsBodyForm;
