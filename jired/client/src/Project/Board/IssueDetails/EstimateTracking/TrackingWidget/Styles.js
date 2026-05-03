@@ -1,16 +1,16 @@
 import styled from 'styled-components';
-
-import { color, font } from 'shared/utils/styles';
 import { Icon } from 'shared/components';
 
+// Figma: time tracking bar — primary accent #ad1e1e, track bg #ececec
 export const TrackingWidget = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
 `;
 
 export const WatchIcon = styled(Icon)`
-  color: ${color.textMedium};
+  color: #866f6f;
 `;
 
 export const Right = styled.div`
@@ -20,20 +20,22 @@ export const Right = styled.div`
 export const BarCont = styled.div`
   height: 5px;
   border-radius: 4px;
-  background: ${color.backgroundMedium};
+  background: #ececec;
 `;
 
 export const Bar = styled.div`
   height: 5px;
   border-radius: 4px;
-  background: ${color.primary};
-  transition: all 0.1s;
+  background: #ad1e1e;
+  transition: width 0.2s;
   width: ${props => props.width}%;
 `;
 
 export const Values = styled.div`
   display: flex;
   justify-content: space-between;
-  padding-top: 3px;
-  ${font.size(14.5)};
+  padding-top: 4px;
+  font-size: 12px;
+  color: #725757;
+  font-family: 'Outfit', sans-serif;
 `;

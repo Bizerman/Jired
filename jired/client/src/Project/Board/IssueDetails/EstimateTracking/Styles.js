@@ -1,25 +1,30 @@
 import styled from 'styled-components';
 
-import { color, font, mixin } from 'shared/utils/styles';
-
+// Figma: "Time tracking" row — 14px, color #866f6f; modal kept clean
 export const TrackingLink = styled.div`
-  padding: 4px 4px 2px 0;
-  border-radius: 4px;
+  padding: 4px 6px 4px 4px;
+  border-radius: 5px;
   transition: background 0.1s;
-  ${mixin.clickable}
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  color: #4a2727;
   &:hover {
-    background: ${color.backgroundLight};
+    background: #ebe7e7;
   }
 `;
 
 export const ModalContents = styled.div`
   padding: 20px 25px 25px;
+  font-family: 'Outfit', sans-serif;
 `;
 
 export const ModalTitle = styled.div`
   padding-bottom: 14px;
-  ${font.medium}
-  ${font.size(20)}
+  font-weight: 600;
+  font-size: 20px;
+  color: #4a2727;
+  font-family: 'Outfit', sans-serif;
 `;
 
 export const Inputs = styled.div`
@@ -34,12 +39,14 @@ export const InputCont = styled.div`
 
 export const InputLabel = styled.div`
   padding-bottom: 5px;
-  color: ${color.textMedium};
-  ${font.medium};
-  ${font.size(13)};
+  color: #725757;
+  font-weight: 500;
+  font-size: 13px;
+  font-family: 'Outfit', sans-serif;
 `;
 
 export const Actions = styled.div`
   display: flex;
   justify-content: flex-end;
+  gap: 6px;
 `;

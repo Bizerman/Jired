@@ -1,26 +1,29 @@
 import styled, { css } from 'styled-components';
+import { mixin } from 'shared/utils/styles';
 
-import { color, font, mixin } from 'shared/utils/styles';
-
+// Figma: Assignee row — avatar circle (#360f0f), "Unassigned" + "Assign to me" link
 export const User = styled.div`
   display: flex;
   align-items: center;
-  ${mixin.clickable}
+  gap: 8px;
+  font-family: 'Outfit', sans-serif;
+  cursor: pointer;
   ${props =>
     props.isSelectValue &&
     css`
-      margin: 0 10px ${props.withBottomMargin ? 5 : 0}px 0;
-      padding: 4px 8px;
-      border-radius: 4px;
-      background: ${color.backgroundLight};
+      padding: 4px 6px;
+      border-radius: 5px;
+      background: #ebe7e7;
       transition: background 0.1s;
       &:hover {
-        background: ${color.backgroundMedium};
+        background: #e0d8d8;
       }
     `}
 `;
 
 export const Username = styled.div`
-  padding: 0 3px 0 8px;
-  ${font.size(14.5)}
+  font-size: 14px;
+  font-family: 'Outfit', sans-serif;
+  color: #4a2727;
+  padding: 0 3px 0 4px;
 `;

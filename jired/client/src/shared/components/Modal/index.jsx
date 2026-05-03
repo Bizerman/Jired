@@ -11,7 +11,7 @@ const propTypes = {
   className: PropTypes.string,
   testid: PropTypes.string,
   variant: PropTypes.oneOf(['center', 'aside']),
-  width: PropTypes.number,
+  width: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   withCloseIcon: PropTypes.bool,
   isOpen: PropTypes.bool,
   onClose: PropTypes.func,

@@ -1,10 +1,8 @@
 import React, { Fragment, useState } from 'react';
 import PropTypes from 'prop-types';
-
 import api from 'shared/utils/api';
 import useCurrentUser from 'shared/hooks/currentUser';
 import toast from 'shared/utils/toast';
-
 import BodyForm from '../BodyForm';
 import ProTip from './ProTip';
 import { Create, UserAvatar, Right, FakeTextarea } from './Styles';
@@ -18,19 +16,23 @@ const ProjectBoardIssueDetailsCommentsCreate = ({ issueId, fetchIssue }) => {
   const [isFormOpen, setFormOpen] = useState(false);
   const [isCreating, setCreating] = useState(false);
   const [body, setBody] = useState('');
-
   const { currentUser } = useCurrentUser();
 
   const handleCommentCreate = async () => {
+    if (!body.trim()) return;
     try {
       setCreating(true);
-      await api.post(`/comments`, { body, issueId, userId: currentUser.id });
+      // Отправляем notes через PUT /issues/:id.json
+      await api.put(`/issues/${issueId}.json`, {
+        issue: { notes: body }
+      });
       await fetchIssue();
       setFormOpen(false);
-      setCreating(false);
       setBody('');
     } catch (error) {
-      toast.error(error);
+      toast.error('Failed to add comment');
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -58,5 +60,4 @@ const ProjectBoardIssueDetailsCommentsCreate = ({ issueId, fetchIssue }) => {
 };
 
 ProjectBoardIssueDetailsCommentsCreate.propTypes = propTypes;
-
 export default ProjectBoardIssueDetailsCommentsCreate;

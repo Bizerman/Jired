@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-
 import api from 'shared/utils/api';
 import toast from 'shared/utils/toast';
 import { Button, ConfirmModal } from 'shared/components';
@@ -14,11 +13,11 @@ const propTypes = {
 const ProjectBoardIssueDetailsDelete = ({ issue, fetchProject, modalClose }) => {
   const handleIssueDelete = async () => {
     try {
-      await api.delete(`/issues/${issue.id}`);
+      await api.delete(`/issues/${issue.id}.json`);
       await fetchProject();
       modalClose();
     } catch (error) {
-      toast.error(error);
+      toast.error('Failed to delete issue');
     }
   };
 
@@ -36,5 +35,4 @@ const ProjectBoardIssueDetailsDelete = ({ issue, fetchProject, modalClose }) => 
 };
 
 ProjectBoardIssueDetailsDelete.propTypes = propTypes;
-
 export default ProjectBoardIssueDetailsDelete;

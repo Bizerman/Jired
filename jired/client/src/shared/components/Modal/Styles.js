@@ -10,7 +10,10 @@ export const ScrollOverlay = styled.div`
   height: 100%;
   z-index: ${zIndexValues.modal};
   background: rgba(0, 0, 0, 0.3);
-  overflow: scroll;
+  overflow: auto;   /* ← меняем scroll на auto */
+  /* Скрываем полосы прокрутки (по желанию) */
+  &::-webkit-scrollbar { display: none; }
+  scrollbar-width: none; /* Firefox */
   ${props => props.variant === 'search' && `
     background: rgba(0, 0, 0, 0.5);
     overflow: hidden;
@@ -49,7 +52,11 @@ export const StyledModal = styled.div`
   ${props => props.variant === 'search' && css`
     position: relative;
     width: 100%;
-    max-width: 80%;
+    max-width: 90vw;
+    width: ${props => {
+    if (typeof props.width === 'number') return `${props.width}px`;
+    return props.width; // строка, например '80vw'
+  }};
     margin: ${props.topOffset}px auto 0 auto;
     overflow-y: auto;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -59,14 +66,23 @@ export const StyledModal = styled.div`
 
 const modalStyles = {
   center: css`
-    max-width: ${props => props.width}px;
+    width: ${props => {
+      if (typeof props.width === 'number') return `${props.width}px`;
+      return props.width;           // теперь width, а не max-width
+    }};
+    max-width: 90vw;
+    overflow-y: auto;                /* страховка, чтобы окно не вылезало */
     vertical-align: middle;
     border-radius: 3px;
     ${mixin.boxShadowMedium}
   `,
   aside: css`
     min-height: 100vh;
-    max-width: ${props => props.width}px;
+    width: ${props => {
+      if (typeof props.width === 'number') return `${props.width}px`;
+      return props.width;
+    }};
+    max-width: 90vw;
     box-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.15);
   `,
 };

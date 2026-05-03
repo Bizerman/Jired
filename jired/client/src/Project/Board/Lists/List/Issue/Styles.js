@@ -5,7 +5,6 @@ import { Avatar } from 'shared/components';
 
 export const IssueLink = styled(Link)`
   display: block;
-  margin-bottom: 5px;   /* 4 * 1.25 */
   text-decoration: none;
 `;
 
@@ -28,8 +27,8 @@ export const Issue = styled.div`
       border-color: ${color.primary};
     `}
   cursor: pointer;
+  margin-bottom: 10px;
 `;
-
 export const Title = styled.p`
   ${font.regular}
   font-size: 17.5px;       /* 14 * 1.25 */
@@ -90,4 +89,11 @@ export const IssueCheckbox = styled.input`
   opacity: ${p => p.checked ? 1 : 0};
   &:hover { opacity: 1; }
   ${Issue}:hover & { opacity: 1; }
+`;
+
+export const PriorityIcon = styled.img`
+  color: ${color.primary};
+  width: 1rem;
+  height: 1rem;
+  aspect-ratio: 1/1;
 `;
