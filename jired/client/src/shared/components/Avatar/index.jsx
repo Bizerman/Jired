@@ -39,7 +39,7 @@ const Avatar = ({ className, avatarUrl, name, size, ...otherProps }) => {
 const colors = [
   '#DA7657',
   '#6ADA57',
-  '#5784DA',
+  '#360F0F',
   '#AA57DA',
   '#DA5757',
   '#DA5792',

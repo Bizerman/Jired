@@ -4,7 +4,6 @@ import { Avatar } from 'shared/components';
 // Figma: avatar 40x40 rounded, dark bg #360f0f; comment input with border #ececec
 export const Create = styled.div`
   position: relative;
-  margin-top: 25px;
   font-size: 14px;
   font-family: 'Outfit', sans-serif;
 `;

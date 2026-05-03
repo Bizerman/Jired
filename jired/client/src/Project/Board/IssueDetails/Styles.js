@@ -18,13 +18,12 @@ const f = {
 
 export const Content = styled.div`
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;   // ← было flex-start
   gap: 30px;
-  height: 60vh;
+  min-height: 55vh;       // ← было max-height или height
   padding: 0 3% 3%;
   font-family: ${f.font};
   @media (max-width: 1200px) { flex-wrap: wrap; }
-  overflow: hidden;
 `;
 
 export const Left = styled.div`

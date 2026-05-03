@@ -1,8 +1,8 @@
-import React, { Fragment, useState } from 'react';
+import React, { Fragment, useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { getTextContentsFromHtmlString } from 'shared/utils/browser';
-import { TextEditor, TextEditedContent, Button } from 'shared/components';
-import { Title, EmptyLabel, Actions } from './Styles';
+import { TextEditor, TextEditedContent } from 'shared/components';
+import { Title, EmptyLabel, DescriptionPreview, EditorContainer  } from './Styles';
 
 const propTypes = {
   issue: PropTypes.object.isRequired,
@@ -12,40 +12,45 @@ const propTypes = {
 const ProjectBoardIssueDetailsDescription = ({ issue, updateIssue }) => {
   const [description, setDescription] = useState(issue.description || '');
   const [isEditing, setEditing] = useState(false);
+  const editorRef = useRef(null);
 
-  const handleUpdate = () => {
-    setEditing(false);
-    if (description !== issue.description) {
-      updateIssue({ description });
-    }
-  };
+  // Закрываем редактор и сохраняем изменения при клике вне его
+  useEffect(() => {
+    if (!isEditing) return;
+
+    const handleClickOutside = (event) => {
+      if (editorRef.current && !editorRef.current.contains(event.target)) {
+        if (description !== issue.description) {
+          updateIssue({ description });
+        }
+        setEditing(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isEditing, description, issue.description, updateIssue]);
 
   const isEmpty = getTextContentsFromHtmlString(description).trim().length === 0;
 
   return (
-    <Fragment>
+    <EditorContainer ref={editorRef}>
       {isEditing ? (
-        <Fragment>
-          <TextEditor
-            placeholder="Describe the issue"
-            defaultValue={description}
-            onChange={setDescription}
-          />
-          <Actions>
-            <Button variant="primary" onClick={handleUpdate}>Save</Button>
-            <Button variant="empty" onClick={() => setEditing(false)}>Cancel</Button>
-          </Actions>
-        </Fragment>
+        <TextEditor
+          placeholder="Describe the issue"
+          defaultValue={description}
+          onChange={setDescription}
+        />
       ) : (
-        <Fragment>
+        <DescriptionPreview onClick={() => setEditing(true)}>
           {isEmpty ? (
-            <EmptyLabel onClick={() => setEditing(true)}>Add a description...</EmptyLabel>
+            <EmptyLabel>Add a description...</EmptyLabel>
           ) : (
-            <TextEditedContent content={description} onClick={() => setEditing(true)} />
+            <TextEditedContent content={description} />
           )}
-        </Fragment>
+        </DescriptionPreview>
       )}
-    </Fragment>
+    </EditorContainer>
   );
 };
 
