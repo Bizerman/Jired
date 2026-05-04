@@ -31,7 +31,7 @@ import {
   MetaLabel,
   MetaValue,
   ViewAllLink,
-} from './Styles';        // новые компоненты Meta*
+} from './Styles';
 import defaultProjectIcon from 'App/assets/imgs/projectdefault.svg';
 import { createQueryParamModalHelpers } from 'shared/utils/queryParamModal';
 
@@ -55,8 +55,10 @@ const AllProjects = () => {
         ? { ...projects[0], issues: [] }
         : { name: 'Jired', issues: [] };
 
-    const [{ data: allIssuesData }] = useApi.get('/issues.json?limit=1000');
+    // ВАЖНО: status_id=* чтобы получить и открытые, и закрытые задачи
+    const [{ data: allIssuesData }] = useApi.get('/issues.json?status_id=*&limit=1000');
     const allIssues = allIssuesData?.issues || [];
+
     const stripHtml = (html) => {
         if (!html) return '';
         const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -65,11 +67,11 @@ const AllProjects = () => {
 
     const getProjectStats = (projectId) => {
         const projectIssues = allIssues.filter(issue => {
-        const pid = issue.project?.id || issue.project_id;
-        return pid === projectId;
+          const pid = issue.project?.id || issue.project_id;
+          return pid === projectId;
         });
         const total = projectIssues.length;
-        const closed = projectIssues.filter(issue => issue.status?.is_closed).length;
+        const closed = projectIssues.filter(issue => issue.status?.is_closed === true).length;
         const progress = total > 0 ? Math.round((closed / total) * 100) : 0;
         return { total, closed, progress };
     };
@@ -125,7 +127,6 @@ const AllProjects = () => {
                         <CardMeta>{stripHtml(project.description) || 'No description'}</CardMeta>
                     </CardHeader>
 
-                    {/* Мета-информация: Identifier, Access, Inherit members */}
                     <MetaList>
                         <MetaRow>
                         <MetaLabel>Identifier</MetaLabel>

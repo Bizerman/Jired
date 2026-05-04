@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
+import axios from 'axios';
+import { getStoredAuthToken } from 'shared/utils/authToken';
 import api from 'shared/utils/api';
 import toast from 'shared/utils/toast';
 import { PageError, Button, CopyLinkButton } from 'shared/components';
@@ -84,7 +86,47 @@ const ProjectBoardIssueDetails = ({
       }
     }
     setIssue(updatedIssue);
-
+    // Проверка блокировок при смене статуса на Done
+    if (fields.status_id) {
+      const doneStatusId = statuses.find(s => s.name === 'Done')?.id;
+      if (fields.status_id === doneStatusId) {
+        try {
+          const authToken = getStoredAuthToken();
+          if (!authToken) {
+            toast.error('Authentication token not found');
+            return;
+          }
+          const { data: issueData } = await axios.get(
+            `/redmine/issues/${issue.id}.json?include=relations`,
+            { headers: { 'X-Redmine-API-Key': authToken } }
+          );
+          const relations = issueData.issue.relations || [];
+          for (const rel of relations) {
+            const isBlocked =
+              (rel.relation_type === 'blocks' && rel.issue_to_id === issue.id) ||
+              (rel.relation_type === 'blocked_by' && rel.issue_from_id === issue.id);
+            if (isBlocked) {
+              const blockerId = rel.relation_type === 'blocks' ? rel.issue_id : rel.issue_to_id;
+              const { data: blockerData } = await axios.get(
+                `/redmine/issues/${blockerId}.json`,
+                { headers: { 'X-Redmine-API-Key': authToken } }
+              );
+              const blockerStatus = blockerData.issue.status?.name;
+              if (blockerStatus !== 'Done') {
+                toast.error(`This task is blocked by #${blockerId} (${blockerStatus}). Complete it first.`);
+                fetchIssue();
+                return;
+              }
+            }
+          }
+        } catch (e) {
+          console.error(e);
+          toast.error('Unable to check blockers');
+          fetchIssue();
+          return;
+        }
+      }
+    }
     try {
       const payload = { issue: {} };
       if ('subject' in fields) payload.issue.subject = fields.subject;
@@ -125,10 +167,11 @@ const ProjectBoardIssueDetails = ({
     if (fields.priority_id !== undefined) {
       mappedFields.priority_id = fields.priority_id;
     }
-
+    mappedFields.updatedAt = new Date().toISOString();
     if (updateLocalProjectIssues) {
       updateLocalProjectIssues(issue.id, mappedFields);
     }
+    
 };
 
   const handleSave = async () => {
@@ -139,6 +182,7 @@ const ProjectBoardIssueDetails = ({
     await updateIssue(pendingChanges);
     setPendingChanges({});
     setIsEditing(false);
+    fetchIssue();
   };
 
   const handleCancel = () => {
@@ -208,6 +252,7 @@ const ProjectBoardIssueDetails = ({
           onSave={handleSave}
           onCancel={handleCancel}
           onEnableEditing={() => setIsEditing(true)}
+          currentUser={currentUser}
         />
       </Content>
     </>

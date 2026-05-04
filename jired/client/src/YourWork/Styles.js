@@ -162,10 +162,9 @@ export const ProjectCard = styled.div`
   border: 1px solid ${color.borderLightest};
   border-radius: 8px;
   background: #fff;
-  overflow: hidden;
+  overflow: hidden;       // ← добавить
   cursor: pointer;
   transition: box-shadow 0.15s;
-  // min-height удалено, чтобы карточка сжималась под контент
   &:hover {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
   }
@@ -225,6 +224,7 @@ export const CardHeader = styled.div`
   flex-direction: column;
   gap: 4px;
   margin-bottom: 12px;
+  
 `;
 
 export const CardTitle = styled.span`
@@ -342,4 +342,45 @@ export const ProjectCardCreate = styled.div`
   }
   grid-auto-rows: max-content;
   height: 100%;
+`;
+
+export const TaskListContainer = styled.div`
+  margin-top: 12px;
+`;
+
+export const TaskListItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border: 1px solid #ececec;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  transition: box-shadow 0.1s;
+  margin-bottom: 8px;
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+`;
+
+export const TaskItemTitle = styled.div`
+  font-size: 14px;
+  font-weight: 500;
+  color: #4a2727;
+  font-family: 'Outfit', sans-serif;
+  margin-bottom: 4px;
+`;
+
+export const TaskItemMeta = styled.div`
+  font-size: 12px;
+  color: #866f6f;
+  font-family: 'Outfit', sans-serif;
+`;
+
+export const TaskItemProject = styled.div`
+  font-size: 12px;
+  color: #5e3f3f;
+  font-family: 'Outfit', sans-serif;
+  text-align: right;
 `;

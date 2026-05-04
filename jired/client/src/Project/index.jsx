@@ -94,15 +94,16 @@ const Project = () => {
             }
 
             return {
-              ...issue,
-              title: issue.subject || '',
-              type: foundTracker === 'Bug' ? 'bug' : foundTracker === 'Story' ? 'story' : 'task',
-              priority_id: issue.priority?.id,
-              userIds: issue.assigned_to ? [issue.assigned_to.id] : [],
-              statusKey,
-              status_id: issue.status?.id,
-              lock_version: issue.lock_version,
-            };
+            ...issue,
+            title: issue.subject || '',
+            type: foundTracker === 'Bug' ? 'bug' : foundTracker === 'Story' ? 'story' : 'task',
+            priority_id: issue.priority?.id,
+            userIds: issue.assigned_to ? [issue.assigned_to.id] : [],
+            statusKey,
+            status_id: issue.status?.id,
+            lock_version: issue.lock_version,
+            updatedAt: issue.updated_on,
+          };
           });
           if (isMountedRef.current) {
           setProjectData({

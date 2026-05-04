@@ -8,6 +8,7 @@ import { getStoredAuthToken } from 'shared/utils/authToken';
 import { IssueStatus, IssueStatusToName } from 'shared/constants/issues';
 import List from './List';
 import { Lists } from './Styles';
+import toast from 'shared/utils/toast';
 
 const ProjectBoardLists = ({ project, filters, updateLocalProjectIssues, moveIssueInList, moveIssuesInColumn }) => {
   const { currentUserId } = useCurrentUser();
@@ -95,7 +96,7 @@ const ProjectBoardLists = ({ project, filters, updateLocalProjectIssues, moveIss
       return;
     }
 
-    // --- Перемещение между колонками (оставляем без изменений) ---
+    // --- Перемещение между колонками ---
     const newStatusKey = destination.droppableId;
     const statusName = IssueStatusToName[newStatusKey];
     if (!statusName) return;
@@ -115,13 +116,64 @@ const ProjectBoardLists = ({ project, filters, updateLocalProjectIssues, moveIss
       if (issue) oldStatuses[id] = { statusKey: issue.statusKey, status_id: issue.status_id };
     });
 
+    // Оптимистичное обновление (визуальное)
     idsToUpdate.forEach(id => {
-      updateLocalProjectIssues(id, {
-        statusKey: newStatusKey,
-        status_id: newStatusId,
-      });
+    updateLocalProjectIssues(id, {
+      statusKey: newStatusKey,
+      status_id: newStatusId,
+      updatedAt: new Date().toISOString(),
     });
+  });
 
+    // Проверка блокировок перед реальным сохранением
+    if (newStatusKey === IssueStatus.DONE) {
+      for (const id of idsToUpdate) {
+        try {
+          const { data: issueData } = await axios.get(
+            `/redmine/issues/${id}.json?include=relations`,
+            { headers: { 'X-Redmine-API-Key': authToken } }
+          );
+          const relations = issueData.issue.relations || [];
+          for (const rel of relations) {
+            const isBlocked =
+              (rel.relation_type === 'blocks' && rel.issue_to_id === id) ||
+              (rel.relation_type === 'blocked_by' && rel.issue_from_id === id);
+            if (isBlocked) {
+              // Определяем ID задачи-блокиратора
+              const blockerId = rel.relation_type === 'blocks' ? rel.issue_id : rel.issue_to_id;
+              // Запрашиваем статус блокиратора
+              const { data: blockerData } = await axios.get(
+                `/redmine/issues/${blockerId}.json`,
+                { headers: { 'X-Redmine-API-Key': authToken } }
+              );
+              const blockerStatus = blockerData.issue.status?.name;
+              if (blockerStatus !== 'Done') {
+                toast.error(`Task #${id} is blocked by #${blockerId} (${blockerStatus}). Complete it first.`);
+                // Откатываем все перемещённые задачи
+                idsToUpdate.forEach(uid => {
+                  if (oldStatuses[uid]) {
+                    updateLocalProjectIssues(uid, oldStatuses[uid]);
+                  }
+                });
+                return; // прерываем операцию
+              }
+            }
+          }
+        } catch (e) {
+          console.error(e);
+          toast.error('Unable to verify blockers');
+          // Откатываем при ошибке
+          idsToUpdate.forEach(uid => {
+            if (oldStatuses[uid]) {
+              updateLocalProjectIssues(uid, oldStatuses[uid]);
+            }
+          });
+          return;
+        }
+      }
+    }
+
+    // Если проверка пройдена, сохраняем на сервере
     try {
       await Promise.all(idsToUpdate.map(id => {
         const params = new URLSearchParams();
@@ -135,6 +187,7 @@ const ProjectBoardLists = ({ project, filters, updateLocalProjectIssues, moveIss
       }));
     } catch (error) {
       console.error('Mass update failed', error);
+      // Откат при неудачном запросе
       idsToUpdate.forEach(id => {
         if (oldStatuses[id]) {
           updateLocalProjectIssues(id, oldStatuses[id]);

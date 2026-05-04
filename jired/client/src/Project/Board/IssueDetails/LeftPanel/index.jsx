@@ -77,16 +77,37 @@ const LeftPanel = ({ issue, updateIssue, fetchIssue, isEditing, currentUser, sta
             </ActionsRow>
           )}
           {!isEditing && issue.relations && issue.relations.length > 0 && (
-            <RelationsBlock>
-              <SectionTitle>Relations</SectionTitle>
-              {issue.relations.map(rel => (
+          <RelationsBlock>
+            <SectionTitle>Relations</SectionTitle>
+            {/* Временно выведем в консоль реальную структуру первого элемента, чтобы убедиться */}
+            {console.log('Relations data:', issue.relations[0])}
+            {issue.relations.map(rel => {
+              // Получаем ID текущей задачи и ID связанной задачи из любых возможных полей
+              const fromId = rel.issue_from_id || rel.issue_id;
+              const toId = rel.issue_to_id || (rel.issue_id === issue.id ? rel.issue_to_id : rel.issue_id);
+              const isFromCurrent = (fromId === issue.id);
+              const relatedIssueId = isFromCurrent ? toId : fromId;
+              if (!relatedIssueId) return null; // пропускаем некорректные связи
+
+              // Инвертируем тип связи, если текущая задача — получатель
+              const inverseTypes = {
+                blocks: 'blocked_by',
+                blocked_by: 'blocks',
+                precedes: 'follows',
+                follows: 'precedes',
+              };
+              const rawType = rel.relation_type || 'related';
+              const displayType = isFromCurrent ? rawType : (inverseTypes[rawType] || rawType);
+
+              return (
                 <RelationItem key={rel.id}>
-                  <RelationType>{rel.relation_type}</RelationType>
-                  <span>LP-{rel.issue_to_id}</span>
+                  <RelationType>{displayType}</RelationType>
+                  <span>ISSUE-{relatedIssueId}</span>
                 </RelationItem>
-              ))}
-            </RelationsBlock>
-          )}
+              );
+            })}
+          </RelationsBlock>
+        )}
         </HeaderBlock>
         <DescriptionBlock>
           <DescriptionTitle>Description</DescriptionTitle>

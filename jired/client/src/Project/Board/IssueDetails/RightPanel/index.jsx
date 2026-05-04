@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect  } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import Icon from 'shared/components/Icon';
@@ -62,6 +62,7 @@ const RightPanel = ({
   onSave,
   onCancel,
   onEnableEditing,
+  currentUser,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
@@ -72,7 +73,14 @@ const RightPanel = ({
   const priorityId = pendingChanges.priority_id || issue.priority?.id;
   const priorityName = priorities.find(p => p.id === priorityId)?.name || '—';
   const currentStatusName = statuses.find(s => s.id === (pendingChanges.status_id || issue.status?.id))?.name || 'Status';
-  const assigneeUser = issue.assigned_to;
+  const effectiveAssigneeId = isEditing
+    ? (pendingChanges.assigned_to_id || issue.assigned_to?.id)
+    : (issue.assigned_to?.id);
+
+  // Ищем пользователя в projectUsers или в currentUser
+  const assigneeUserFromList = projectUsers.find(u => u.id === effectiveAssigneeId);
+  const assigneeUser = assigneeUserFromList
+    || (currentUser && currentUser.id === effectiveAssigneeId ? currentUser : null);
   const reporterUser = projectUsers.find(u => u.id === issue.author?.id) || issue.author;
 
   const estimatedHours = pendingChanges.estimated_hours ?? issue.estimated_hours ?? 0;
@@ -81,8 +89,17 @@ const RightPanel = ({
 
   const effectivePriorityId = pendingChanges.priority_id || issue.priority?.id || issue.priority_id;
   const priorityMeta = getPriorityMeta({ priority: { id: effectivePriorityId } }, priorities);
+  
+  const [selectedAssignee, setSelectedAssignee] = useState(null);
 
   const [hideEmpty, setHideEmpty] = useState(false);
+  // При входе в редактирование синхронизируем значение с текущим assignee
+  useEffect(() => {
+    if (isEditing) {
+      const currentId = issue.assigned_to?.id || null;
+      setSelectedAssignee(currentId);
+    }
+  }, [isEditing, issue.assigned_to]);
   const renderUser = (user) => {
     if (!user) {
       return (
@@ -153,13 +170,22 @@ const RightPanel = ({
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   {renderUser(assigneeUser)}
                   <EditSelect
-                    value={pendingChanges.assigned_to_id || issue.assigned_to?.id || ''}
-                    onChange={(e) => updatePendingChanges('assigned_to_id', Number(e.target.value) || null)}
+                    value={selectedAssignee === null ? '' : (selectedAssignee ?? '')}
+                    onChange={(e) => {
+                      const newId = e.target.value === '' ? null : Number(e.target.value);
+                      setSelectedAssignee(newId);
+                      updatePendingChanges('assigned_to_id', newId);
+                    }}
                   >
                     <option value="">Unassigned</option>
                     {projectUsers.map(user => (
                       <option key={user.id} value={user.id}>{user.name}</option>
                     ))}
+                    {currentUser && !projectUsers.some(u => u.id === currentUser.id) && (
+                      <option key={currentUser.id} value={currentUser.id}>
+                        {currentUser.name}
+                      </option>
+                    )}
                   </EditSelect>
                 </div>
               ) : (

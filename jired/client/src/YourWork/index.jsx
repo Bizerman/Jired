@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
-import useApi from 'shared/hooks/api';
 import { createQueryParamModalHelpers } from 'shared/utils/queryParamModal';
 import { PageLoader, Modal } from 'shared/components';
 import { Icon } from 'shared/components';
 import { color } from 'shared/utils/styles';
+import api from 'shared/utils/api';
 import Navbar from '../Project/Navbar';
 import IssueSearch from '../Project/IssueSearch';
 import IssueCreate from '../Project/IssueCreate';
@@ -30,17 +30,11 @@ import {
   IssueCount,
   TaskTabs,
   Tab,
-  TodaySection,
-  EventList,
-  EventItem,
-  EventIconBox,
-  EventTitles,
-  EventTitleText,
-  EventMeta,
-  EventCreators,
-  CreatorBlock,
-  CreatorLabel,
-  StyledAvatar,
+  TaskListContainer,
+  TaskListItem,
+  TaskItemTitle,
+  TaskItemMeta,
+  TaskItemProject,
   ViewAllLink,
   ProjectCardCreate,
 } from './Styles';
@@ -70,30 +64,60 @@ const YourWork = () => {
   const issueSearchModalHelpers = createQueryParamModalHelpers('issue-search');
   const issueCreateModalHelpers = createQueryParamModalHelpers('issue-create');
 
-  const [{ data: projectsData, isLoading }] = useApi.get('/projects.json');
-  const projects = projectsData?.projects || [];
+  // Проекты
+  const [projects, setProjects] = useState([]);
+  const [isProjectsLoading, setIsProjectsLoading] = useState(true);
 
-  // Получаем ID текущего пользователя
-  const [{ data: currentUserData }] = useApi.get('/users/current.json');
-  const currentUserId = currentUserData?.user?.id;
+  const fetchProjects = useCallback(async () => {
+    try {
+      setIsProjectsLoading(true);
+      const res = await api.get('/projects.json');
+      setProjects(res.projects || []);
+    } catch (err) {
+      console.error('Failed to fetch projects', err);
+    } finally {
+      setIsProjectsLoading(false);
+    }
+  }, []);
 
-  // Загружаем ВСЕ открытые задачи, назначенные на меня (по всем проектам)
-  const [{ data: allOpenIssuesData }] = useApi.get(
-    currentUserId ? '/issues.json?assigned_to_id=me&status_id=open&limit=1000' : null,
-    {},
-    { lazy: !currentUserId }
-  );
-  const allOpenIssues = allOpenIssuesData?.issues || [];
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
 
-  // Загружаем ВСЕ закрытые задачи по всем проектам (командный счетчик)
-  const [{ data: allClosedIssuesData }] = useApi.get(
-    '/issues.json?status_id=closed&limit=1000',
-    {},
-    { lazy: false }
-  );
-  const allClosedIssues = allClosedIssuesData?.issues || [];
+  // Текущий пользователь
+  const [currentUser, setCurrentUser] = useState(null);
 
-  // Формируем список недавних проектов
+  useEffect(() => {
+    api.get('/users/current.json')
+      .then(res => setCurrentUser(res.user || null))
+      .catch(() => {});
+  }, []);
+
+  const currentUserId = currentUser?.id;
+
+  // Задачи, назначенные на меня – загружаем, когда узнаем currentUserId
+  const [myIssues, setMyIssues] = useState([]);
+  const [isTasksLoading, setIsTasksLoading] = useState(false);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+    setIsTasksLoading(true);
+    // Используем явный ID пользователя, а не 'me', для надёжности
+    api.get(`/issues.json?assigned_to_id=${currentUserId}&status_id=*&limit=1000`)
+      .then(res => {
+        const fetched = res.issues || [];
+        console.log('YourWork: my issues count =', fetched.length); // отладка
+        setMyIssues(fetched);
+      })
+      .catch(err => {
+        console.error('Failed to fetch my issues', err);
+      })
+      .finally(() => setIsTasksLoading(false));
+  }, [currentUserId]);
+
+  // Открытые задачи (не is_closed)
+  const myOpenIssues = myIssues.filter(issue => !issue.status?.is_closed);
+
   const [recentProjects, setRecentProjects] = useState([]);
 
   const stripHtml = (html) => {
@@ -120,21 +144,32 @@ const YourWork = () => {
     ? { ...projects[0], issues: [] }
     : { name: 'Jired', issues: [] };
 
-  const todaysTasks = [
-    // ... без изменений
-  ];
-
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-    history.push(`/your-work?tab=${tab}`);
-  };
+  const TaskList = ({ issues }) => (
+    <TaskListContainer>
+      {issues.length === 0 ? (
+        <div style={{ padding: 16, color: '#7e7e7e' }}>No tasks found</div>
+      ) : (
+        issues.map(issue => (
+          <TaskListItem key={issue.id} onClick={() => history.push(`/project/board/issues/${issue.id}`)}>
+            <div>
+              <TaskItemTitle>{issue.subject}</TaskItemTitle>
+              <TaskItemMeta>
+                {issue.project?.name} · {issue.status?.name || 'Unknown'} · {issue.priority?.name || 'Normal'}
+              </TaskItemMeta>
+            </div>
+            <TaskItemProject>{issue.project?.name}</TaskItemProject>
+          </TaskListItem>
+        ))
+      )}
+    </TaskListContainer>
+  );
 
   const handleProjectSwitch = (projectId) => {
     localStorage.setItem('currentProjectId', projectId);
     window.location.href = '/project/board';
   };
 
-  if (isLoading) return <PageLoader />;
+  if (isProjectsLoading) return <PageLoader />;
 
   return (
     <>
@@ -181,17 +216,14 @@ const YourWork = () => {
 
         <SectionTitle style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>Recent projects</span>
-          <ViewAllLink onClick={() => history.push('/projects')}>
-            View all projects
-          </ViewAllLink>
+          <ViewAllLink onClick={() => history.push('/projects')}>View all projects</ViewAllLink>
         </SectionTitle>
+
         <ProjectGrid>
           {recentProjects.map((project) => {
             const iconSrc = getProjectIcon(project.id);
             const iconBg = getProjectIconBg(project.id);
-
-            // Подсчитываем счётчики
-            const myOpenCount = allOpenIssues.filter(issue => issue.project?.id === project.id).length;
+            const myOpenCount = myOpenIssues.filter(issue => issue.project?.id === project.id).length;
 
             return (
               <ProjectCard key={project.id} onClick={() => handleProjectSwitch(project.id)}>
@@ -229,40 +261,39 @@ const YourWork = () => {
         </ProjectGrid>
 
         <TaskTabs>
-          <Tab active={activeTab === 'worked-on'} onClick={() => handleTabChange('worked-on')}>Worked on</Tab>
-          <Tab active={activeTab === 'viewed'} onClick={() => handleTabChange('viewed')}>Viewed</Tab>
-          <Tab active={activeTab === 'assigned-to-me'} onClick={() => handleTabChange('assigned-to-me')}>Assigned to me</Tab>
-          <Tab active={activeTab === 'starred'} onClick={() => handleTabChange('starred')}>Starred</Tab>
+          <Tab active={activeTab === 'worked-on'} onClick={() => history.push('/your-work?tab=worked-on')}>Worked on</Tab>
+          <Tab active={activeTab === 'viewed'} onClick={() => history.push('/your-work?tab=viewed')}>Viewed</Tab>
+          <Tab active={activeTab === 'assigned-to-me'} onClick={() => history.push('/your-work?tab=assigned-to-me')}>Assigned to me</Tab>
+          <Tab active={activeTab === 'starred'} onClick={() => history.push('/your-work?tab=starred')}>Starred</Tab>
         </TaskTabs>
 
-        {activeTab === 'worked-on' && (
-          <TodaySection>
-            <SectionTitle>TODAY</SectionTitle>
-            <EventList>
-              {todaysTasks.map((item, idx) => (
-                <EventItem key={idx}>
-                  <EventIconBox />
-                  <EventTitles>
-                    <EventTitleText>{item.title}</EventTitleText>
-                    <EventMeta>{item.meta}</EventMeta>
-                  </EventTitles>
-                </EventItem>
-              ))}
-            </EventList>
-            <EventCreators>
-              {[...Array(9)].map((_, i) => (
-                <CreatorBlock key={i}>
-                  <CreatorLabel>Created</CreatorLabel>
-                  <StyledAvatar size={32} />
-                </CreatorBlock>
-              ))}
-            </EventCreators>
-          </TodaySection>
-        )}
+        {isTasksLoading ? (
+          <div style={{ padding: 20 }}>Loading tasks...</div>
+        ) : (
+          <>
+            {activeTab === 'worked-on' && (
+              <div>
+                <SectionTitle>Recently updated by you</SectionTitle>
+                <TaskList
+                  issues={myIssues
+                    .sort((a, b) => new Date(b.updated_on) - new Date(a.updated_on))
+                    .slice(0, 10)
+                  }
+                />
+              </div>
+            )}
 
-        {activeTab === 'viewed' && <SectionTitle>Viewed items (coming soon)</SectionTitle>}
-        {activeTab === 'starred' && <SectionTitle>Starred projects (coming soon)</SectionTitle>}
-        {activeTab === 'assigned-to-me' && <SectionTitle>Assigned to me (use board filter)</SectionTitle>}
+            {activeTab === 'assigned-to-me' && (
+              <div>
+                <SectionTitle>Open tasks assigned to me</SectionTitle>
+                <TaskList issues={myOpenIssues} />
+              </div>
+            )}
+
+            {activeTab === 'viewed' && <SectionTitle>Viewed items (coming soon)</SectionTitle>}
+            {activeTab === 'starred' && <SectionTitle>Starred (coming soon)</SectionTitle>}
+          </>
+        )}
       </PageWrapper>
     </>
   );

@@ -59,9 +59,10 @@ const ProjectBoardListIssue = ({
   priorities, // ← новый пропс
 }) => {
   const match = useRouteMatch();
-  const assignees = issue.userIds.map(
-    userId => projectUsers.find(user => user.id === userId)
-  );
+  const assignees = (issue.userIds || [])
+  .map(userId => projectUsers.find(user => user.id === userId))
+  .filter(Boolean);
+
 
   // Формируем ключ задачи: PROJECTKEY-123
   const issueKey = projectIdentifier
