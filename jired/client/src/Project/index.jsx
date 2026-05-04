@@ -14,6 +14,7 @@ import Board from './Board';
 import IssueSearch from './IssueSearch';
 import IssueCreate from './IssueCreate';
 import ProjectSettings from './ProjectSettings';
+import ProjectSummary from './Summary';
 import ProjectCreate from '../ProjectCreate';
 import { ProjectPage } from './Styles';
 import { IssueStatus } from 'shared/constants/issues';
@@ -297,6 +298,10 @@ const moveIssuesInColumn = useCallback((statusKey, orderedIds) => {
       )}
 
       <Route path={`${match.path}/create`} component={ProjectCreate} />
+      <Route
+        path={`${match.path}/summary`}
+        render={() => <ProjectSummary project={project} />}
+      />
       <Route
         path={`${match.path}/board`}
         render={() => (

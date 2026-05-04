@@ -23,7 +23,7 @@ const defaultProps = {
   className: undefined,
   testid: 'modal',
   variant: 'center',
-  width: 600,
+  width: "50vw",
   withCloseIcon: true,
   isOpen: undefined,
   onClose: () => {},

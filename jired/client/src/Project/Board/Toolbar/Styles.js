@@ -52,11 +52,13 @@ export const ToolbarItem = styled.div`
 `;
 
 export const ItemIcon = styled.span`
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: ${18 * SCALE}px;
-  height: ${18 * SCALE}px;
+  /* больше никаких фиксированных размеров! */
+  svg, i {
+    display: flex;
+  }
 `;
 
 export const ItemLabel = styled.span`

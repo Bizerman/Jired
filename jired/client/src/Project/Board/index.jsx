@@ -4,7 +4,7 @@ import { Route, useRouteMatch, useHistory } from 'react-router-dom';
 
 import useMergeState from 'shared/hooks/mergeState';
 import { Breadcrumbs, Modal } from 'shared/components';
-
+import { useLocation } from 'react-router-dom';
 import ProjectBoardHeader from './Header';
 import Filters from './Filters';
 import Lists from './Lists';
@@ -26,20 +26,25 @@ const defaultFilters = {
 
 const ProjectBoard = ({ project, fetchProject, updateLocalProjectIssues, moveIssueInList, moveIssuesInColumn }) => {
   const match = useRouteMatch();
+  const baseUrl = match.url.replace(/\/board$/, '');
   const history = useHistory();
 
   const [filters, mergeFilters] = useMergeState(defaultFilters);
-
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const showOnlyDone = searchParams.get('done') === '1';
 
   return (
     <Fragment>
       <ProjectBoardHeader project={project} />
-      <ProjectToolbar/>
+      <ProjectToolbar baseUrl={baseUrl} />
       <Filters
         projectUsers={project.users}
-        defaultFilters={defaultFilters}
+        defaultFilters={{ searchTerm: '', userIds: [], myOnly: false, recent: false }}
         filters={filters}
         mergeFilters={mergeFilters}
+        showOnlyDone={showOnlyDone}                           // ← добавить
+        onClearDoneFilter={() => history.push('/project/board')}  // ← добавить
       />
       <Lists
         project={project}
@@ -47,6 +52,7 @@ const ProjectBoard = ({ project, fetchProject, updateLocalProjectIssues, moveIss
         updateLocalProjectIssues={updateLocalProjectIssues}
         moveIssueInList={moveIssueInList}
         moveIssuesInColumn={moveIssuesInColumn}
+        showOnlyDone={showOnlyDone}
       />
       <Route
         path={`${match.path}/issues/:issueId`}

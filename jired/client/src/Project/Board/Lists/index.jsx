@@ -10,7 +10,7 @@ import List from './List';
 import { Lists } from './Styles';
 import toast from 'shared/utils/toast';
 
-const ProjectBoardLists = ({ project, filters, updateLocalProjectIssues, moveIssueInList, moveIssuesInColumn }) => {
+const ProjectBoardLists = ({ project, filters, updateLocalProjectIssues, moveIssueInList, moveIssuesInColumn, showOnlyDone}) => {
   const { currentUserId } = useCurrentUser();
   const [selectedIssueIds, setSelectedIssueIds] = useState(new Set());
   const [hiddenIssueIds, setHiddenIssueIds] = useState(new Set());
@@ -236,7 +236,7 @@ const ProjectBoardLists = ({ project, filters, updateLocalProjectIssues, moveIss
             key={status}
             status={status}
             project={project}
-            filters={filters}
+            filters={{ ...filters, showOnlyDone }}
             currentUserId={currentUserId}
             selectedIssueIds={selectedIssueIds}
             onIssueSelect={handleIssueSelect}

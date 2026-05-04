@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useHistory } from 'react-router-dom';
-import { IssueTypeIcon, IssuePriorityIcon } from 'shared/components';
+import { IssueTypeIcon, IssuePriorityIcon, Avatar } from 'shared/components';
 import { Icon } from 'shared/components';
 import { Link } from 'react-router-dom';
 import BellIcon from 'shared/components/Bell';
 import gridicon from '../../App/assets/imgs/fi-sr-grid.svg';
 import useApi from 'shared/hooks/api';
+import { getPriorityMeta } from 'shared/utils/priorities';
 import {
   Navbar,
   LeftSection,
@@ -37,6 +38,7 @@ const propTypes = {
   issueCreateModalOpen: PropTypes.func.isRequired,
   onToggleAdminMode: PropTypes.func,
   project: PropTypes.object,
+  hideAssignedDropdown: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -49,6 +51,7 @@ const ProjectNavbar = ({
   issueCreateModalOpen,
   onToggleAdminMode,
   project,
+  hideAssignedDropdown = false,
 }) => {
   const history = useHistory();
   const [hoveredDropdown, setHoveredDropdown] = useState(null);
@@ -91,7 +94,11 @@ const ProjectNavbar = ({
   const tasksList = currentUserId
     ? project.issues.filter((issue) => issue.userIds?.includes(currentUserId))
     : [];
-
+    
+  const renderPriorityIcon = (issue) => {
+    const meta = getPriorityMeta(issue);
+    return meta ? <img src={meta.src} alt="" style={{ width: '1rem', height: '1rem' }} /> : null;
+  };
   const handleTaskClick = (issueId) => {
     history.push(`/project/board/issues/${issueId}`);
     setHoveredDropdown(null);
@@ -143,41 +150,49 @@ const ProjectNavbar = ({
           </DropdownWrapper>
 
           {/* Assigned to me */}
-          <DropdownWrapper
-            onMouseEnter={() => openDropdown('tasks')}
-            onMouseLeave={closeDropdown}
-          >
+          {hideAssignedDropdown ? (
             <NavItemBox
-              primary={hoveredDropdown === 'tasks'}
-              onClick={() => {
-                history.push('/your-work?tab=assigned-to-me');
-                setHoveredDropdown(null);
-              }}
+              onClick={() => history.push('/your-work?tab=assigned-to-me')}
             >
               <NavItem>Assigned to me</NavItem>
-              <Icon size={20} type="chevron-down" />
             </NavItemBox>
-            {hoveredDropdown === 'tasks' && (
-              <DropdownMenu onMouseEnter={keepDropdownOpen}>
-                {currentUser ? (
-                  tasksList.length ? (
-                    tasksList.map(issue => (
-                      <DropdownItem key={issue.id} onClick={() => handleTaskClick(issue.id)}>
-                        <IssueTypeIcon type={issue.type} size={16} />
-                        <IssuePriorityIcon priority={issue.priority} size={16} />
-                        <IssueKey>LP-{issue.id}</IssueKey>
-                        <IssueTitle>{issue.title}</IssueTitle>
-                      </DropdownItem>
-                    ))
+          ) : (
+            <DropdownWrapper
+              onMouseEnter={() => openDropdown('tasks')}
+              onMouseLeave={closeDropdown}
+            >
+              <NavItemBox
+                primary={hoveredDropdown === 'tasks'}
+                onClick={() => {
+                  history.push('/your-work?tab=assigned-to-me');
+                  setHoveredDropdown(null);
+                }}
+              >
+                <NavItem>Assigned to me</NavItem>
+                <Icon size={20} type="chevron-down" />
+              </NavItemBox>
+              {hoveredDropdown === 'tasks' && (
+                <DropdownMenu onMouseEnter={keepDropdownOpen}>
+                  {currentUser ? (
+                    tasksList.length ? (
+                      tasksList.map(issue => (
+                        <DropdownItem key={issue.id} onClick={() => handleTaskClick(issue.id)}>
+                          <IssueTypeIcon type={issue.type} size={16} />
+                          {renderPriorityIcon(issue)}
+                          <IssueKey>ISSUE-{issue.id}</IssueKey>
+                          <IssueTitle>{issue.title}</IssueTitle>
+                        </DropdownItem>
+                      ))
+                    ) : (
+                      <DropdownItem>No tasks assigned</DropdownItem>
+                    )
                   ) : (
-                    <DropdownItem>No tasks assigned</DropdownItem>
-                  )
-                ) : (
-                  <DropdownItem>Loading...</DropdownItem>
-                )}
-              </DropdownMenu>
-            )}
-          </DropdownWrapper>
+                    <DropdownItem>Loading...</DropdownItem>
+                  )}
+                </DropdownMenu>
+              )}
+            </DropdownWrapper>
+          )}
 
           <CreateButton onClick={issueCreateModalOpen}>Create</CreateButton>
         </NavItems>
@@ -202,7 +217,13 @@ const ProjectNavbar = ({
         <IconBtn title="Settings">
           <Icon type="settings" size={20} />
         </IconBtn>
-        <UserAvatar title="Profile">{initials}</UserAvatar>
+        <Avatar
+          name={currentUserName}
+          avatarUrl={currentUser?.avatarUrl}
+          size={32}
+          style={{ cursor: 'pointer', marginLeft: '8px' }}
+          onClick={() => history.push('/profile')}   // или другая навигация
+        />
       </RightSection>
     </Navbar>
   );

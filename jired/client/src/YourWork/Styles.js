@@ -217,22 +217,28 @@ export const CardBody = styled.div`
   padding: 16px 16px 12px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;  /* распределяет пространство */
+  justify-content: space-between;
+  min-width: 0;                /* ← обязательно, чтобы flex-дети могли сжиматься */
+  overflow: hidden;           /* ← на всякий случай */
 `;
 export const CardHeader = styled.div`
   display: flex;
   flex-direction: column;
   gap: 4px;
   margin-bottom: 12px;
-  
+  min-width: 0;
 `;
 
 export const CardTitle = styled.span`
   font-size: 18px;
   font-weight: 500;
   color: #360f0f;
-  ${mixin.truncateText}
   font-family: 'Outfit', sans-serif;
+  display: block; 
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export const CardMeta = styled.span`
@@ -252,12 +258,20 @@ export const CardLinks = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 6px;
+  min-width: 0;
+  gap: 8px;                  /* небольшой зазор между текстом и счётчиком */
+  flex-wrap: nowrap;         /* запрещаем перенос */
 `;
 
 export const LinkText = styled.span`
   font-size: 14px;
   color: #5e3f3f;
   font-family: 'Outfit', sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0;
+  flex: 1;                   /* текст занимает доступное место, но может обрезаться */
   &:hover {
     text-decoration: underline;
     cursor: pointer;
@@ -271,6 +285,7 @@ export const IssueCount = styled.span`
   border-radius: 10px;
   color: ${color.textMedium};
   font-weight: 500;
+  flex-shrink: 0;            /* счётчик никогда не сжимается */
 `;
 
 export const ProgressBar = styled.div`
@@ -345,27 +360,24 @@ export const ProjectCardCreate = styled.div`
 `;
 
 export const TaskListContainer = styled.div`
-  margin-top: 12px;
+  margin-top: 14px;
 `;
 
 export const TaskListItem = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  border: 1px solid #ececec;
-  border-radius: 4px;
   background: #fff;
   cursor: pointer;
   transition: box-shadow 0.1s;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   &:hover {
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   }
 `;
 
 export const TaskItemTitle = styled.div`
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   color: #4a2727;
   font-family: 'Outfit', sans-serif;
@@ -373,7 +385,7 @@ export const TaskItemTitle = styled.div`
 `;
 
 export const TaskItemMeta = styled.div`
-  font-size: 12px;
+  font-size: 14px;
   color: #866f6f;
   font-family: 'Outfit', sans-serif;
 `;
@@ -383,4 +395,51 @@ export const TaskItemProject = styled.div`
   color: #5e3f3f;
   font-family: 'Outfit', sans-serif;
   text-align: right;
+`;
+export const TaskLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex: 1;
+  min-width: 0;
+`;
+
+export const TaskIconBox = styled.div`
+  display: flex;
+  width: 2.2rem;
+  height: 2.2rem;
+  padding: 0.5rem 0.35rem;
+  justify-content: center;
+  align-items: center;
+  gap: 0.625rem;
+  border-radius: 4px;
+  background: ${color.primary};
+  flex-shrink: 0;
+`;
+
+export const TaskInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.375rem;
+  min-width: 0;
+`;
+
+export const TaskRight = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+`;
+
+export const AvatarPic = styled(Avatar)`
+  width: 2rem;
+  height: 2rem;
+`;
+
+export const CreatorName = styled.span`
+  font-size: 0.75rem;
+  color: #866f6f;
+  font-family: 'Outfit', sans-serif;
+  white-space: nowrap;
 `;

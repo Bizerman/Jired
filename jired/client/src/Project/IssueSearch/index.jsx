@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import { get } from 'lodash';
 
 import useApi from 'shared/hooks/api';
-import { sortByNewest } from 'shared/utils/javascript';
 import { IssueTypeIcon } from 'shared/components';
 
 import NoResultsSVG from './NoResultsSvg';
@@ -31,19 +30,22 @@ const propTypes = {
 const ProjectIssueSearch = ({ project }) => {
   const [isSearchTermEmpty, setIsSearchTermEmpty] = useState(true);
 
-  const [{ data, isLoading }, fetchIssues] = useApi.get('/issues', {}, { lazy: true });
+  const [{ data, isLoading }, fetchIssues] = useApi.get('/issues.json', {}, { lazy: true });
 
   const matchingIssues = get(data, 'issues', []);
 
-  const recentIssues = sortByNewest(project.issues, 'createdAt').slice(0, 10);
+  const recentIssues = (project.issues || [])
+    .slice()
+    .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0))
+    .slice(0, 10);
 
   const handleSearchChange = value => {
     const searchTerm = value.trim();
-
     setIsSearchTermEmpty(!searchTerm);
 
     if (searchTerm) {
-      fetchIssues({ searchTerm });
+      // Поиск только по названию задачи (subject)
+      fetchIssues({ subject: `~${searchTerm}` });
     }
   };
 
@@ -52,7 +54,7 @@ const ProjectIssueSearch = ({ project }) => {
       <SearchInputCont>
         <SearchInputDebounced
           autoFocus
-          placeholder="Search issues by summary, description..."
+          placeholder="Search issues by summary..."
           onChange={handleSearchChange}
         />
         <SearchIcon type="search" size={22} />
@@ -69,7 +71,7 @@ const ProjectIssueSearch = ({ project }) => {
       {!isSearchTermEmpty && matchingIssues.length > 0 && (
         <Fragment>
           <SectionTitle>Matching Issues</SectionTitle>
-          {matchingIssues.map(renderIssue)}
+          {matchingIssues.map(issue => renderIssue(issue))}
         </Fragment>
       )}
 
@@ -87,15 +89,14 @@ const ProjectIssueSearch = ({ project }) => {
 const renderIssue = issue => (
   <Link key={issue.id} to={`/project/board/issues/${issue.id}`}>
     <Issue>
-      <IssueTypeIcon type={issue.type} size={25} />
+      <IssueTypeIcon type={issue.type || 'task'} size={25} />
       <IssueData>
-        <IssueTitle>{issue.title}</IssueTitle>
-        <IssueTypeId>{`${issue.type}-${issue.id}`}</IssueTypeId>
+        <IssueTitle>{issue.title || issue.subject}</IssueTitle>
+        <IssueTypeId>{`ISSUE-${issue.id}`}</IssueTypeId>
       </IssueData>
     </Issue>
   </Link>
 );
 
 ProjectIssueSearch.propTypes = propTypes;
-
 export default ProjectIssueSearch;

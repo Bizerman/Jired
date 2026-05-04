@@ -59,7 +59,6 @@ export const Issue = styled.div`
 export const IssueData = styled.div`
   padding-left: 15px;
 `;
-
 export const IssueTitle = styled.div`
   color: ${color.textDark};
   ${font.size(15)}

@@ -224,6 +224,7 @@ export const UserAvatarWrapper = styled.div`
   margin-right: 8px;
 `;
 
+
 export const UnassignedIcon = styled.span`
   display: inline-flex;
   align-items: center;

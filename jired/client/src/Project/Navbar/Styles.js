@@ -60,7 +60,7 @@ export const NavItemBox = styled.div`
   border-radius: 5px;
   transition: color 0.15s;
   &:hover {
-    color: ${props => props.primary ? color.primary : color.textDark};
+    color: ${props => props.primary ? color.primary : color.primary};
   }
 `;
 
@@ -211,7 +211,7 @@ export const DropdownItem = styled.li`
   gap: 8px;
   padding: 8px 16px;
   font-size: 17.5px;
-  color: ${color.textDark};
+  color: ${color.textMedium};
   ${mixin.clickable}
   max-width: 320px;          /* ограничение ширины всего пункта */
 

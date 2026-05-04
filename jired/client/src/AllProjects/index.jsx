@@ -89,6 +89,7 @@ const AllProjects = () => {
             issueSearchModalOpen={issueSearchModalHelpers.open}
             issueCreateModalOpen={issueSearchModalHelpers.open}
             project={defaultProject}
+            hideAssignedDropdown
         />
 
         <PageWrapper>

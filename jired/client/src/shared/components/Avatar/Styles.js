@@ -11,7 +11,9 @@ export const Image = styled.div`
 `;
 
 export const Letter = styled.div`
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: ${props => props.size}px;
   height: ${props => props.size}px;
   border-radius: 100%;
@@ -19,7 +21,7 @@ export const Letter = styled.div`
   color: #fff;
   background: ${props => props.color};
   ${font.medium}
-  ${props => font.size(Math.round(props.size / 1.7))}
+  font-size: ${props => Math.round(props.size / 2.4)}px;
   & > span {
     display: flex;
     align-items: center;

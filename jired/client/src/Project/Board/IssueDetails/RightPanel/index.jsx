@@ -74,11 +74,10 @@ const RightPanel = ({
   const priorityName = priorities.find(p => p.id === priorityId)?.name || '—';
   const currentStatusName = statuses.find(s => s.id === (pendingChanges.status_id || issue.status?.id))?.name || 'Status';
   const effectiveAssigneeId = isEditing
-    ? (pendingChanges.assigned_to_id || issue.assigned_to?.id)
+    ? (pendingChanges.assigned_to_id !== undefined ? pendingChanges.assigned_to_id : issue.assigned_to?.id)
     : (issue.assigned_to?.id);
 
-  // Ищем пользователя в projectUsers или в currentUser
-  const assigneeUserFromList = projectUsers.find(u => u.id === effectiveAssigneeId);
+  const assigneeUserFromList = effectiveAssigneeId ? projectUsers.find(u => u.id === effectiveAssigneeId) : null;
   const assigneeUser = assigneeUserFromList
     || (currentUser && currentUser.id === effectiveAssigneeId ? currentUser : null);
   const reporterUser = projectUsers.find(u => u.id === issue.author?.id) || issue.author;
@@ -110,7 +109,7 @@ const RightPanel = ({
     }
     return (
       <UserAvatarWrapper>
-        <Avatar name={user.name} avatarUrl={user.avatarUrl} size={22} />
+        <Avatar name={user.name} avatarUrl={user.avatarUrl} size={24} />
       </UserAvatarWrapper>
     );
   };

@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { xor } from 'lodash';
 import { Icon } from 'shared/components';
-import useCurrentUser from 'shared/hooks/currentUser';  // <-- добавлен хук
+import useCurrentUser from 'shared/hooks/currentUser';
 import {
   Filters,
   LeftFilters,
@@ -21,23 +21,33 @@ const propTypes = {
   defaultFilters: PropTypes.object.isRequired,
   filters: PropTypes.object.isRequired,
   mergeFilters: PropTypes.func.isRequired,
+  showOnlyDone: PropTypes.bool,                     // новое
+  onClearDoneFilter: PropTypes.func,                // новое
 };
 
-const ProjectBoardFilters = ({ projectUsers, defaultFilters, filters, mergeFilters }) => {
-  const { currentUserId } = useCurrentUser();   // получаем текущего пользователя
+const ProjectBoardFilters = ({
+  projectUsers,
+  defaultFilters,
+  filters,
+  mergeFilters,
+  showOnlyDone,
+  onClearDoneFilter,
+}) => {
+  const { currentUserId } = useCurrentUser();
   const { searchTerm, userIds, myOnly, recent } = filters;
 
-  const areFiltersCleared = !searchTerm && userIds.length === 0 && !myOnly && !recent;
+  // Кнопка Clear All видна, если есть локальные фильтры ИЛИ активен фильтр "Done"
+  const hasLocalFilters = !!searchTerm || userIds.length > 0 || myOnly || recent;
+  const showClearAll = hasLocalFilters || showOnlyDone;
 
-  // Обработчик для "Only My Issues" использует currentUserId напрямую,
-  // чтобы гарантировать, что фильтр применится даже если myOnly был изменён извне.
-  const handleMyOnlyToggle = () => {
-    mergeFilters({ myOnly: !myOnly });
-  };
-
-  // Сброс всех фильтров к значениям по умолчанию
+  // Сброс вообще всего: локальные фильтры + done‑фильтр
   const handleClearAll = () => {
+    // сначала сбрасываем локальные фильтры
     mergeFilters(defaultFilters);
+    // если включён done‑фильтр, переходим на доску без него
+    if (showOnlyDone && onClearDoneFilter) {
+      onClearDoneFilter();
+    }
   };
 
   return (
@@ -66,7 +76,7 @@ const ProjectBoardFilters = ({ projectUsers, defaultFilters, filters, mergeFilte
         <StyledButton
           variant="empty"
           isActive={myOnly}
-          onClick={handleMyOnlyToggle}
+          onClick={() => mergeFilters({ myOnly: !myOnly })}
         >
           Only My Issues
         </StyledButton>
@@ -79,7 +89,7 @@ const ProjectBoardFilters = ({ projectUsers, defaultFilters, filters, mergeFilte
           Recently Updated
         </StyledButton>
 
-        {!areFiltersCleared && (
+        {showClearAll && (
           <ClearAll onClick={handleClearAll}>Clear all</ClearAll>
         )}
       </LeftFilters>
@@ -99,5 +109,4 @@ const ProjectBoardFilters = ({ projectUsers, defaultFilters, filters, mergeFilte
 };
 
 ProjectBoardFilters.propTypes = propTypes;
-
 export default ProjectBoardFilters;

@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import moment from 'moment';
 import { Droppable } from 'react-beautiful-dnd';
 import { intersection } from 'lodash';
-import { IssueStatusCopy, IssueStatusToName } from 'shared/constants/issues';
+import { IssueStatusCopy, IssueStatusToName, IssueStatus } from 'shared/constants/issues';
 import Issue from './Issue';
 import { List, Title, StatusBadge, IssuesCount, Issues, DragPlaceholder } from './Styles';
 
@@ -22,6 +22,9 @@ const filterIssues = (projectIssues, filters, currentUserId) => {
   if (userIds.length > 0) issues = issues.filter(issue => intersection(issue.userIds, userIds).length > 0);
   if (myOnly && currentUserId) issues = issues.filter(issue => issue.userIds.includes(currentUserId));
   if (recent) issues = issues.filter(issue => moment(issue.updatedAt).isAfter(moment().subtract(1, 'days')));
+  if (filters.showOnlyDone) {
+    issues = issues.filter(issue => issue.statusKey === IssueStatus.DONE);
+  }
   return issues;
 };
 
