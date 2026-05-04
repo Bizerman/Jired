@@ -4,7 +4,7 @@ import { Router, Switch, Route, Redirect } from 'react-router-dom';
 import history from 'browserHistory';
 import Project from 'Project';
 import YourWork from '../YourWork';
-import Authenticate from 'Auth/Authenticate';
+import Authenticate from '../Authenticate';
 import PageError from 'shared/components/PageError';
 import AllProjects from '../AllProjects';
 

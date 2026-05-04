@@ -216,7 +216,7 @@ const SelectDropdown = ({
   );
 };
 
-const activeOptionClass = 'jira-select-option-is-active';
+const activeOptionClass = 'jired-select-option-is-active';
 
 SelectDropdown.propTypes = propTypes;
 SelectDropdown.defaultProps = defaultProps;

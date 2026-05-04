@@ -6,7 +6,6 @@ export const IssueType = {
 
 export const IssueStatus = {
   BACKLOG: 'backlog',
-  SELECTED: 'selected',
   INPROGRESS: 'inprogress',
   DONE: 'done',
 };
@@ -14,7 +13,6 @@ export const IssueStatus = {
 // Сопоставление ключа статуса и его названия в Redmine
 export const IssueStatusToName = {
   [IssueStatus.BACKLOG]: 'Backlog',
-  [IssueStatus.SELECTED]: 'Selected',
   [IssueStatus.INPROGRESS]: 'In Progress',
   [IssueStatus.DONE]: 'Done',
 };
@@ -35,7 +33,6 @@ export const IssueTypeCopy = {
 
 export const IssueStatusCopy = {
   [IssueStatus.BACKLOG]: 'Backlog',
-  [IssueStatus.SELECTED]: 'Selected',
   [IssueStatus.INPROGRESS]: 'In Progress',
   [IssueStatus.DONE]: 'Done',
 };

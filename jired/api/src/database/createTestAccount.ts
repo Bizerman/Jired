@@ -6,12 +6,12 @@ import { createEntity } from 'utils/typeorm';
 const seedUsers = (): Promise<User[]> => {
   const users = [
     createEntity(User, {
-      email: 'gaben@jira.test',
+      email: 'gaben@jired.test',
       name: 'Gaben',
       avatarUrl: 'https://i.ibb.co/6RJ5hq6/gaben.jpg',
     }),
     createEntity(User, {
-      email: 'yoda@jira.test',
+      email: 'yoda@jired.test',
       name: 'Yoda',
       avatarUrl: 'https://i.ibb.co/6n0hLML/baby-yoda.jpg',
     }),
@@ -56,7 +56,6 @@ const seedIssues = (project: Project): Promise<Issue[]> => {
     createEntity(Issue, {
       title: 'Issue title 3',
       type: IssueType.STORY,
-      status: IssueStatus.SELECTED,
       priority: IssuePriority.HIGH,
       listPosition: 3,
       estimate: 10,

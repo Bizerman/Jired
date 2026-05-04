@@ -155,7 +155,6 @@ const ProjectBoardIssueDetails = ({
       if (newStatus) {
         const name = newStatus.name.trim().toLowerCase();
         if (name.includes('backlog')) mappedFields.statusKey = IssueStatus.BACKLOG;
-        else if (name.includes('selected')) mappedFields.statusKey = IssueStatus.SELECTED;
         else if (name.includes('in progress')) mappedFields.statusKey = IssueStatus.INPROGRESS;
         else if (name.includes('done')) mappedFields.statusKey = IssueStatus.DONE;
         else mappedFields.statusKey = IssueStatus.BACKLOG;

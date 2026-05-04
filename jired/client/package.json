@@ -1,11 +1,11 @@
 {
-  "name": "jira_client",
+  "name": "jired_client",
   "version": "1.0.0",
   "author": "Ivor Reic",
   "license": "MIT",
   "scripts": {
     "start": "set NODE_OPTIONS=--openssl-legacy-provider && webpack-dev-server",
-    "start:production": "pm2 start --name 'jira_client' server.js",
+    "start:production": "pm2 start --name 'jired_client' server.js",
     "test:jest": "jest",
     "test:cypress": "node_modules/.bin/cypress open",
     "build": "rm -rf build && webpack --config webpack.config.production.js --progress",

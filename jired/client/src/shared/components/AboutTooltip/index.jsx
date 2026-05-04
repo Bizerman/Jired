@@ -17,7 +17,7 @@ const AboutTooltip = tooltipProps => (
         </FeedbackImageCont>
 
         <FeedbackParagraph>
-          This simplified Jira clone is built with React on the front-end and Node/TypeScript on the
+          This simplified jired clone is built with React on the front-end and Node/TypeScript on the
           back-end.
         </FeedbackParagraph>
 
@@ -32,7 +32,7 @@ const AboutTooltip = tooltipProps => (
           <Button variant="primary">Visit Website</Button>
         </a>
 
-        <a href="https://github.com/oldboyxx/jira_clone" target="_blank" rel="noreferrer noopener">
+        <a href="https://github.com/oldboyxx/jired" target="_blank" rel="noreferrer noopener">
           <Button style={{ marginLeft: 10 }} icon="github">
             Github Repo
           </Button>

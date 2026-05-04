@@ -47,6 +47,11 @@ module.exports = {
         target: 'http://localhost',
         changeOrigin: true,
         pathRewrite: { '^/redmine': '' },
+        onProxyRes: (proxyRes, req, res) => {
+          if (proxyRes.statusCode === 401) {
+            delete proxyRes.headers['www-authenticate'];
+          }
+        },
       },
       '/api': {
         target: 'http://localhost:3000',

@@ -23,14 +23,14 @@ export const StyledToast = styled.div`
   ${mixin.clearfix}
   ${mixin.hardwareAccelerate}
 
-  &.jira-toast-enter,
-  &.jira-toast-exit.jira-toast-exit-active {
+  &.jired-toast-enter,
+  &.jired-toast-exit.jired-toast-exit-active {
     opacity: 0;
     right: -10px;
   }
 
-  &.jira-toast-exit,
-  &.jira-toast-enter.jira-toast-enter-active {
+  &.jired-toast-exit,
+  &.jired-toast-enter.jired-toast-enter-active {
     opacity: 1;
     right: 0;
   }

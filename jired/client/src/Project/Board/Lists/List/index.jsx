@@ -9,7 +9,6 @@ import { List, Title, StatusBadge, IssuesCount, Issues, DragPlaceholder } from '
 
 const statusBadgeColors = {
   backlog:    { bg: '#e8e1e1', textColor: '#5e3f3f' },
-  selected:   { bg: '#fde8e8', textColor: '#ad1e1e' },
   inprogress: { bg: '#fde8e8', textColor: '#ad1e1e' },
   done:       { bg: '#e4fcef', textColor: '#0B875B' },
 };

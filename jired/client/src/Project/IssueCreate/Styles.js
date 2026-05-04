@@ -27,7 +27,7 @@ export const FormHeading = styled.h2`
   margin: 0;
 `;
 
-/* ── Двухколоночный макет (Jira Style) ── */
+/* ── Двухколоночный макет (jired Style) ── */
 export const FormLayout = styled.div`
   display: grid;
   grid-template-columns: 2fr 1fr; /* Левая колонка шире правой */
@@ -46,12 +46,12 @@ export const SidebarColumn = styled.div`
   gap: 1.25rem;
 `;
 
-/* Строгий лейбл в стиле Jira */
+/* Строгий лейбл в стиле jired */
 export const FieldLabel = styled.label`
   display: block;
   ${font.medium}
   font-size: 0.75rem; /* 12px */
-  color: #5e6c84; /* Фирменный серый цвет Jira для лейблов */
+  color: #5e6c84; /* Фирменный серый цвет jired для лейблов */
   margin-bottom: 0.375rem;
 `;
 
@@ -108,7 +108,7 @@ export const FieldRow = styled.div`
 
 export const Actions = styled.div`
   display: flex;
-  justify-content: flex-end; /* Кнопки справа, как в Jira */
+  justify-content: flex-end; /* Кнопки справа, как в jired */
   align-items: center;
   gap: 0.75rem;
   margin-top: 2rem;

@@ -11,12 +11,10 @@ describe('Issues drag & drop', () => {
 
   it('moves issue between different lists', () => {
     cy.get(testid`board-list:backlog`).should('contain', firstIssueTitle);
-    cy.get(testid`board-list:selected`).should('not.contain', firstIssueTitle);
     moveFirstIssue(KeyCodes.ARROW_RIGHT);
 
     cy.assertReloadAssert(() => {
       cy.get(testid`board-list:backlog`).should('not.contain', firstIssueTitle);
-      cy.get(testid`board-list:selected`).should('contain', firstIssueTitle);
     });
   });
 

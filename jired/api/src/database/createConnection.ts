@@ -7,7 +7,7 @@ const createDatabaseConnection = async (): Promise<Connection> => {
     port: Number(process.env.DB_PORT) || 5433,
     username: process.env.DB_USERNAME || 'postgres',
     password: process.env.DB_PASSWORD || '3657635',
-    database: process.env.DB_DATABASE || 'jira_development',
+    database: process.env.DB_DATABASE || 'jired_development',
     entities: [__dirname + '/../entities/**/*.ts'],
     synchronize: true,
   };

@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import BellIcon from 'shared/components/Bell';
 import gridicon from '../../App/assets/imgs/fi-sr-grid.svg';
 import useApi from 'shared/hooks/api';
+import { getStoredAuthToken, storeAuthToken, removeStoredAuthToken } from 'shared/utils/authToken';
 import { getPriorityMeta } from 'shared/utils/priorities';
 import {
   Navbar,
@@ -67,7 +68,6 @@ const ProjectNavbar = ({
   const currentUserName = currentUser 
     ? `${currentUser.firstname} ${currentUser.lastname}`.trim() 
     : '';
-
   const getInitials = (name) => {
     if (!name) return '??';
     const parts = name.trim().split(/\s+/);
@@ -77,7 +77,7 @@ const ProjectNavbar = ({
     return name.substring(0, 2).toUpperCase();
   };
   const initials = getInitials(currentUserName);
-
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const openDropdown = (name) => {
     if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     setHoveredDropdown(name);
@@ -108,7 +108,10 @@ const ProjectNavbar = ({
   history.push(`/your-work?tab=${destination}`);
   setHoveredDropdown(null);
   };
-
+  const handleLogout = () => {
+    removeStoredAuthToken();
+    history.push('/authenticate');
+  };
   return (
     <Navbar>
       <LeftSection>
@@ -217,13 +220,25 @@ const ProjectNavbar = ({
         <IconBtn title="Settings">
           <Icon type="settings" size={20} />
         </IconBtn>
-        <Avatar
-          name={currentUserName}
-          avatarUrl={currentUser?.avatarUrl}
-          size={32}
-          style={{ cursor: 'pointer', marginLeft: '8px' }}
-          onClick={() => history.push('/profile')}   // или другая навигация
-        />
+        <div style={{ position: 'relative' }}>
+          <Avatar
+            name={currentUserName}
+            avatarUrl={currentUser?.avatarUrl}
+            size={32}
+            style={{ cursor: 'pointer', marginLeft: '8px' }}
+            onClick={() => setShowUserMenu(!showUserMenu)}
+          />
+          {showUserMenu && (
+            <DropdownMenu
+              style={{ right: 0, left: 'auto', minWidth: '120px' }}
+              onMouseLeave={() => setShowUserMenu(false)}
+            >
+              <DropdownItem onClick={handleLogout}>
+                Log out
+              </DropdownItem>
+            </DropdownMenu>
+          )}
+        </div>
       </RightSection>
     </Navbar>
   );

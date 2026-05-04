@@ -102,6 +102,9 @@ const ProjectBoardLists = ({ project, filters, updateLocalProjectIssues, moveIss
     if (!statusName) return;
 
     const newStatusId = project.statuses.find(s => s.name === statusName)?.id;
+    console.log('Target status name:', statusName);
+    console.log('Available statuses:', project.statuses);
+    console.log('Found status id:', newStatusId);
     if (!newStatusId) return;
 
     const authToken = getStoredAuthToken();

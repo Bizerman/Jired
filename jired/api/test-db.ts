@@ -8,7 +8,7 @@ async function test() {
       port: 5433,
       username: 'postgres',
       password: '3657635',
-      database: 'jira_development',
+      database: 'jired_development',
       synchronize: false,
     });
     await conn.close();

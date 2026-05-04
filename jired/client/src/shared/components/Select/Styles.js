@@ -134,7 +134,7 @@ export const Option = styled.div`
   &:last-of-type {
     margin-bottom: 8px;
   }
-  &.jira-select-option-is-active {
+  &.jired-select-option-is-active {
     background: ${color.backgroundLightPrimary};
   }
 `;

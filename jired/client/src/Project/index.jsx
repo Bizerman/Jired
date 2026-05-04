@@ -88,7 +88,6 @@ const Project = () => {
               const name = foundStatus.name.trim().toLowerCase();
               console.log(`Issue #${issue.id}: status="${foundStatus.name}" -> key="${name}"`);
               if (name.includes('backlog')) statusKey = IssueStatus.BACKLOG;
-              else if (name.includes('selected')) statusKey = IssueStatus.SELECTED;
               else if (name.includes('in progress')) statusKey = IssueStatus.INPROGRESS;
               else if (name.includes('done')) statusKey = IssueStatus.DONE;
               else {
