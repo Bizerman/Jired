@@ -55,9 +55,22 @@ export const ItemIcon = styled.span`
   display: flex;
   align-items: center;
   justify-content: center;
-  /* больше никаких фиксированных размеров! */
-  svg, i {
-    display: flex;
+  color: #725757;               /* серый по умолчанию */
+  transition: color 0.15s;
+
+  /* Иконки шрифта */
+  i {
+    color: inherit;
+  }
+
+  /* SVG-иконки */
+  svg {
+    fill: currentColor;          /* берёт цвет у родителя */
+  }
+
+  /* При активном состоянии родителя */
+  ${ToolbarItem}.active & {
+    color: ${color.primary};
   }
 `;
 

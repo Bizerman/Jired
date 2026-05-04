@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback,useRef  } from 'react';
 import { Route, Redirect, useRouteMatch, useHistory } from 'react-router-dom';
-
+import { useLocation } from 'react-router-dom';
 import toast from 'shared/utils/toast';
 import useApi from 'shared/hooks/api';
 import { updateArrayItemById } from 'shared/utils/javascript';
@@ -10,7 +10,9 @@ import api from '../shared/utils/api';
 
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
+import ProjectToolbar from './Board/Toolbar';
 import Board from './Board';
+import ProjectBoardHeader from './Board/Header';
 import IssueSearch from './IssueSearch';
 import IssueCreate from './IssueCreate';
 import ProjectSettings from './ProjectSettings';
@@ -22,7 +24,8 @@ import { IssueStatus } from 'shared/constants/issues';
 const Project = () => {
   const match = useRouteMatch();
   const history = useHistory();
-
+  const location = useLocation();
+  const isSummaryPage = location.pathname === `${match.url}/summary`;
   const issueSearchModalHelpers = createQueryParamModalHelpers('issue-search');
   const issueCreateModalHelpers = createQueryParamModalHelpers('issue-create');
 
@@ -282,81 +285,109 @@ const moveIssuesInColumn = useCallback((statusKey, orderedIds) => {
     }));
   };
 
-  return (
-    <ProjectPage isCreatePage={isCreatePage}>
-      {!isCreatePage && (
+    return (
+    <>
+    {/* Маршрут Summary – с собственным белым контейнером */}
+    <Route
+      path={`${match.path}/summary`}
+      render={() => (
         <>
-          <Navbar
-            issueSearchModalOpen={issueSearchModalHelpers.open}
-            issueCreateModalOpen={issueCreateModalHelpers.open}
-            project={project}
-          />
-          <Sidebar
-            project={project}
-          />
-        </>
-      )}
-
-      <Route path={`${match.path}/create`} component={ProjectCreate} />
-      <Route
-        path={`${match.path}/summary`}
-        render={() => <ProjectSummary project={project} />}
-      />
-      <Route
-        path={`${match.path}/board`}
-        render={() => (
-          <Board
-            project={project}
-            fetchProject={() => fetchProject(`/projects/${project.id}.json?include=issues`)}
-            updateLocalProjectIssues={updateLocalProjectIssues}
-            moveIssueInList={moveIssueInList}
-            moveIssuesInColumn={moveIssuesInColumn}
-          />
-        )}
-      />
-      <Route
-        path={`${match.path}/settings`}
-        render={() => (
-          <ProjectSettings
-            project={project}
-            fetchProject={() => fetchProject(`/projects/${project.id}.json?include=issues`)}
-          />
+          {!isCreatePage && (
+            <>
+                <Navbar
+                  issueSearchModalOpen={issueSearchModalHelpers.open}
+                  issueCreateModalOpen={issueCreateModalHelpers.open}
+                  project={project}
+                />
+                <Sidebar project={project} />
+              </>
+            )}
+            <div style={{
+              padding: '67.5px 32px 62.5px 515px',
+              minHeight: '100vh',
+              background: '#fff',
+              fontFamily: "'Outfit', sans-serif",
+            }}>
+              <ProjectBoardHeader project={project} />
+              <ProjectToolbar baseUrl={match.url.replace(/\/board$/, '')} />
+              <ProjectSummary project={project} />
+            </div>
+          </>
         )}
       />
 
-      {issueSearchModalHelpers.isOpen() && (
-        <Modal
-          isOpen
-          testid="modal:issue-search"
-          variant="search"
-          withCloseIcon={false}
-          onClose={issueSearchModalHelpers.close}
-          renderContent={() => <IssueSearch project={project} />}
-        />
-      )}
-      {issueCreateModalHelpers.isOpen() && (
-        <Modal
-          isOpen
-          testid="modal:issue-create"
-          width={1040}
-          withCloseIcon={false}
-          onClose={issueCreateModalHelpers.close}
-          renderContent={modal => (
-            <IssueCreate
+      {/* Остальные страницы (board, settings и т.д.) */}
+      {!isSummaryPage && (
+      <ProjectPage isCreatePage={isCreatePage}>
+        {!isCreatePage && (
+          <>
+            <Navbar
+              issueSearchModalOpen={issueSearchModalHelpers.open}
+              issueCreateModalOpen={issueCreateModalHelpers.open}
+              project={project}
+            />
+            <Sidebar project={project} />
+          </>
+        )}
+
+        <Route path={`${match.path}/create`} component={ProjectCreate} />
+        <Route
+          path={`${match.path}/board`}
+          render={() => (
+            <Board
               project={project}
               fetchProject={() => fetchProject(`/projects/${project.id}.json?include=issues`)}
-              onCreate={() => {
-                fetchProject(`/projects/${project.id}.json?include=issues`);
-                history.push(`${match.url}/board`);
-              }}
-              modalClose={modal.close}
+              updateLocalProjectIssues={updateLocalProjectIssues}
+              moveIssueInList={moveIssueInList}
+              moveIssuesInColumn={moveIssuesInColumn}
             />
           )}
         />
-      )}
+        <Route
+          path={`${match.path}/settings`}
+          render={() => (
+            <ProjectSettings
+              project={project}
+              fetchProject={() => fetchProject(`/projects/${project.id}.json?include=issues`)}
+            />
+          )}
+        />
 
-      {match.isExact && <Redirect to={`${match.url}/board`} />}
-    </ProjectPage>
+        {issueSearchModalHelpers.isOpen() && (
+          <Modal
+            isOpen
+            testid="modal:issue-search"
+            variant="search"
+            withCloseIcon={false}
+            onClose={issueSearchModalHelpers.close}
+            renderContent={() => <IssueSearch project={project} />}
+          />
+        )}
+        {issueCreateModalHelpers.isOpen() && (
+          <Modal
+            isOpen
+            testid="modal:issue-create"
+            width={1040}
+            withCloseIcon={false}
+            onClose={issueCreateModalHelpers.close}
+            renderContent={modal => (
+              <IssueCreate
+                project={project}
+                fetchProject={() => fetchProject(`/projects/${project.id}.json?include=issues`)}
+                onCreate={() => {
+                  fetchProject(`/projects/${project.id}.json?include=issues`);
+                  history.push(`${match.url}/board`);
+                }}
+                modalClose={modal.close}
+              />
+            )}
+          />
+        )}
+
+        {match.isExact && <Redirect to={`${match.url}/board`} />}
+      </ProjectPage>
+      )}
+    </>
   );
 };
 

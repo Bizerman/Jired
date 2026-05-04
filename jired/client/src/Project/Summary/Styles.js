@@ -2,8 +2,6 @@ import styled from 'styled-components';
 import { color, font, mixin } from 'shared/utils/styles';
 
 export const SummaryPage = styled.div`
-  padding: 40px 5%;
-  min-height: 94vh;
   background: #fff;
   font-family: 'Outfit', sans-serif;
 `;
@@ -112,7 +110,7 @@ export const TaskIconBox = styled.div`
   width: 2.2rem;
   height: 2.2rem;
   border-radius: 6px;
-  background: #5E3F3F;
+  background: ${color.primary};
   display: flex;
   align-items: center;
   justify-content: center;

@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { useHistory } from 'react-router-dom';
 import moment from 'moment';
+import { Avatar } from 'shared/components';   // ← добавлен импорт
 import {
   SummaryPage,
   WorkHeader,
@@ -24,9 +25,8 @@ import {
   TaskIconBox,
   TaskInfo,
   TaskRight,
-  AvatarPic,
   CreatorName,
-} from './Styles';
+} from './Styles';   // AvatarPic больше не импортируется
 
 const ProjectSummary = ({ project }) => {
   const history = useHistory();
@@ -38,11 +38,6 @@ const ProjectSummary = ({ project }) => {
 
   return (
     <SummaryPage>
-      <WorkHeader>
-        <Title>{project.name} — Summary</Title>
-        <Divider />
-      </WorkHeader>
-
       <SectionTitle>Project Details</SectionTitle>
       <MetaList>
         <MetaRow>
@@ -103,7 +98,7 @@ const ProjectSummary = ({ project }) => {
                     </TaskInfo>
                   </TaskLeft>
                   <TaskRight>
-                    <AvatarPic name={creatorName} avatarUrl={creatorAvatar} size={32} />
+                    <Avatar name={creatorName} avatarUrl={creatorAvatar} size={32} />
                     <CreatorName>{creatorName}</CreatorName>
                   </TaskRight>
                 </TaskListItem>
