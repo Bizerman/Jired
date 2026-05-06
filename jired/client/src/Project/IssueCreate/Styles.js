@@ -44,6 +44,7 @@ export const SidebarColumn = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  justify-content: space-between;
 `;
 
 /* Строгий лейбл в стиле jired */
@@ -198,5 +199,13 @@ export const IconBox = styled.div`
     flex-shrink: 0;
     aspect-ratio: 1/1;
     filter: brightness(0) invert(1);
+  }
+`;
+
+export const PrioritySelect = styled(StyledSelect)`
+  text-align: right;
+  width: 100%;
+  option {
+    text-align: left;
   }
 `;

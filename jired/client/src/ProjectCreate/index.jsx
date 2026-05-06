@@ -167,8 +167,7 @@ const ProjectCreate = () => {
         } catch (e) {}
 
         toast.success('Project created!');
-        history.push('/project/board');
-        window.location.reload();
+        window.location.href = `/project/board?newProjectId=${projectId}`;
       } else {
         throw new Error('Project ID not received');
       }
@@ -180,7 +179,7 @@ const ProjectCreate = () => {
   return (
     <PageWrapper>
       <TopBar>
-        <BackBtn onClick={() => history.goBack()}>← Back to projects</BackBtn>
+        <BackBtn onClick={() => history.goBack()}>← Back to your work</BackBtn>
       </TopBar>
       <Form
         initialValues={{
