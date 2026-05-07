@@ -1,8 +1,9 @@
-import React, { useState, useEffect  } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import Icon from 'shared/components/Icon';
 import { Avatar } from 'shared/components';
+import { useLanguage } from 'context/LanguageContext';
 import userIconSrc from '../../../../App/assets/imgs/user-icon.svg';
 import {
   RightPanelContainer,
@@ -28,8 +29,6 @@ import {
   PriorityIcon,
 } from './Styles';
 
-// Временная функция для получения иконки приоритета (скопирована из ProjectBoardListIssue, 
-// позже стоит вынести в общий утилитный модуль)
 const priorityIconMap = {
   'low':       { src: require('../../../../App/assets/imgs/low-priority-icon.svg').default,      size: '1.5rem' },
   'medium':    { src: require('../../../../App/assets/imgs/medium-priority-icon.svg').default,   size: '1rem'   },
@@ -64,15 +63,25 @@ const RightPanel = ({
   onEnableEditing,
   currentUser,
 }) => {
+  const { t } = useLanguage();
   const [collapsed, setCollapsed] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const [hideEmpty, setHideEmpty] = useState(false);
+  const [selectedAssignee, setSelectedAssignee] = useState(null);
+
+  useEffect(() => {
+    if (isEditing) {
+      const currentId = issue.assigned_to?.id || null;
+      setSelectedAssignee(currentId);
+    }
+  }, [isEditing, issue.assigned_to]);
 
   const createdFromNow = moment(issue.created_on).fromNow();
   const updatedFromNow = moment(issue.updated_on).fromNow();
 
   const priorityId = pendingChanges.priority_id || issue.priority?.id;
   const priorityName = priorities.find(p => p.id === priorityId)?.name || '—';
-  const currentStatusName = statuses.find(s => s.id === (pendingChanges.status_id || issue.status?.id))?.name || 'Status';
+  const currentStatusName = statuses.find(s => s.id === (pendingChanges.status_id || issue.status?.id))?.name || t('status');
   const effectiveAssigneeId = isEditing
     ? (pendingChanges.assigned_to_id !== undefined ? pendingChanges.assigned_to_id : issue.assigned_to?.id)
     : (issue.assigned_to?.id);
@@ -84,21 +93,11 @@ const RightPanel = ({
 
   const estimatedHours = pendingChanges.estimated_hours ?? issue.estimated_hours ?? 0;
   const doneRatio = pendingChanges.done_ratio ?? issue.done_ratio ?? 0;
-  const timeTrackingStr = estimatedHours > 0 ? `${estimatedHours}h / ${doneRatio}%` : 'No estimate';
+  const timeTrackingStr = estimatedHours > 0 ? `${estimatedHours}h / ${doneRatio}%` : t('noEstimate');
 
   const effectivePriorityId = pendingChanges.priority_id || issue.priority?.id || issue.priority_id;
   const priorityMeta = getPriorityMeta({ priority: { id: effectivePriorityId } }, priorities);
-  
-  const [selectedAssignee, setSelectedAssignee] = useState(null);
 
-  const [hideEmpty, setHideEmpty] = useState(false);
-  // При входе в редактирование синхронизируем значение с текущим assignee
-  useEffect(() => {
-    if (isEditing) {
-      const currentId = issue.assigned_to?.id || null;
-      setSelectedAssignee(currentId);
-    }
-  }, [isEditing, issue.assigned_to]);
   const renderUser = (user) => {
     if (!user) {
       return (
@@ -140,16 +139,16 @@ const RightPanel = ({
         </div>
         <AttachButton>
           <Icon type="attach" size={18} />
-          Attach
+          {t('attach')}
         </AttachButton>
       </ActionButtons>
 
       <DetailsCard>
         <DetailsCardHeader>
-          <span>Details</span>
+          <span>{t('details')}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {!isEditing && (
-              <button className="gear-btn" onClick={onEnableEditing} title="Edit fields">
+              <button className="gear-btn" onClick={onEnableEditing} title={t('editFields')}>
                 <Icon type="settings" size={16} />
               </button>
             )}
@@ -164,7 +163,7 @@ const RightPanel = ({
         {!collapsed && (
           <DetailsCardBody>
             <DetailField>
-              <DetailLabel>Assignee</DetailLabel>
+              <DetailLabel>{t('assigneeLabel')}</DetailLabel>
               {isEditing ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   {renderUser(assigneeUser)}
@@ -176,7 +175,7 @@ const RightPanel = ({
                       updatePendingChanges('assigned_to_id', newId);
                     }}
                   >
-                    <option value="">Unassigned</option>
+                    <option value="">{t('unassigned')}</option>
                     {projectUsers.map(user => (
                       <option key={user.id} value={user.id}>{user.name}</option>
                     ))}
@@ -190,13 +189,13 @@ const RightPanel = ({
               ) : (
                 <DetailValue>
                   {renderUser(assigneeUser)}
-                  <span>{assigneeUser?.name || 'Unassigned'}</span>
+                  <span>{assigneeUser?.name || t('unassigned')}</span>
                 </DetailValue>
               )}
             </DetailField>
 
             <DetailField>
-              <DetailLabel>Reporter</DetailLabel>
+              <DetailLabel>{t('reporter')}</DetailLabel>
               <DetailValue>
                 {renderUser(reporterUser)}
                 <span>{reporterUser?.name || '—'}</span>
@@ -204,7 +203,7 @@ const RightPanel = ({
             </DetailField>
 
             <DetailField>
-              <DetailLabel>Priority</DetailLabel>
+              <DetailLabel>{t('priorityLabel')}</DetailLabel>
               {isEditing ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   {priorityMeta && (
@@ -238,7 +237,7 @@ const RightPanel = ({
             </DetailField>
             {(!hideEmpty || issue.start_date) && (
             <DetailField>
-              <DetailLabel>Start date</DetailLabel>
+              <DetailLabel>{t('startDateLabel')}</DetailLabel>
               {isEditing ? (
                 <EditInput
                   type="date"
@@ -246,14 +245,14 @@ const RightPanel = ({
                   onChange={(e) => updatePendingChanges('start_date', e.target.value)}
                 />
               ) : (
-                <DetailValue>{issue.start_date || 'None'}</DetailValue>
+                <DetailValue>{issue.start_date || t('none')}</DetailValue>
               )}
             </DetailField>
             )}
 
             {(!hideEmpty || issue.due_date) && (
             <DetailField>
-              <DetailLabel>Due date</DetailLabel>
+              <DetailLabel>{t('dueDateLabel')}</DetailLabel>
               {isEditing ? (
                 <EditInput
                   type="date"
@@ -261,21 +260,21 @@ const RightPanel = ({
                   onChange={(e) => updatePendingChanges('due_date', e.target.value)}
                 />
               ) : (
-                <DetailValue>{issue.due_date || 'None'}</DetailValue>
+                <DetailValue>{issue.due_date || t('none')}</DetailValue>
               )}
             </DetailField>
             )}
 
             {(!hideEmpty || (issue.estimated_hours && issue.estimated_hours > 0)) && (
             <DetailField>
-              <DetailLabel>Time tracking</DetailLabel>
+              <DetailLabel>{t('timeTracking')}</DetailLabel>
               {isEditing ? (
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <EditInput
                     type="number"
                     min="0"
                     step="0.5"
-                    placeholder="Hours"
+                    placeholder={t('originalEstimate')}
                     value={pendingChanges.estimated_hours ?? issue.estimated_hours ?? ''}
                     onChange={(e) => updatePendingChanges('estimated_hours', Number(e.target.value))}
                     style={{ width: 80 }}
@@ -298,7 +297,7 @@ const RightPanel = ({
 
             {!isEditing && (
               <HideEmptyButton onClick={() => setHideEmpty(!hideEmpty)}>
-                {hideEmpty ? 'Show empty fields' : 'Hide empty fields'}
+                {hideEmpty ? t('showEmptyFields') : t('hideEmptyFields')}
               </HideEmptyButton>
             )}
           </DetailsCardBody>
@@ -307,15 +306,15 @@ const RightPanel = ({
 
       {isEditing && (
         <EditActions>
-          <EditButton primary onClick={onSave}>Save</EditButton>
-          <EditButton onClick={onCancel}>Cancel</EditButton>
+          <EditButton primary onClick={onSave}>{t('save')}</EditButton>
+          <EditButton onClick={onCancel}>{t('cancelEdit')}</EditButton>
         </EditActions>
       )}
 
       {!isEditing && (
         <Timestamps>
-          <div>Created {createdFromNow}</div>
-          <div>Updated {updatedFromNow}</div>
+          <div>{t('created')} {createdFromNow}</div>
+          <div>{t('updated')} {updatedFromNow}</div>
         </Timestamps>
       )}
     </RightPanelContainer>

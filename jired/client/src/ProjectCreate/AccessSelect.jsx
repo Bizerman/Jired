@@ -1,20 +1,22 @@
 import React, { useState } from 'react';
 import { useFormikContext } from 'formik';
 import { Icon } from 'shared/components';
+import { useLanguage } from 'context/LanguageContext';
 import limitedIcon from 'App/assets/imgs/limited-icon.svg';
 import openIcon from 'App/assets/imgs/open-icon.svg';
 
 export const AccessSelect = ({ compact = false }) => {
   const { values, setFieldValue } = useFormikContext();
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const current = values.access;
   const iconSrc = current === 'private' ? limitedIcon : openIcon;
-  const label = current === 'private' ? 'Private' : 'Open';
+  const label = current === 'private' ? t('privateAccess') : t('publicAccess');
 
   const handleSelect = (val) => {
     if (val !== current) {
-      setFieldValue('access', val);   // убрали третий аргумент
-      console.log('Access changed to:', val); // для отладки
+      setFieldValue('access', val);
+      console.log('Access changed to:', val);
     }
     setIsOpen(false);
   };
@@ -59,7 +61,7 @@ export const AccessSelect = ({ compact = false }) => {
             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
           >
             <img src={openIcon} alt="" style={{ width: iconSize, height: iconSize }} />
-            <span style={{ color: '#3f3f3f' }}>Open</span>
+            <span style={{ color: '#3f3f3f' }}>{t('publicAccess')}</span>
           </li>
           <li
             onClick={() => handleSelect('private')}
@@ -73,7 +75,7 @@ export const AccessSelect = ({ compact = false }) => {
             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
           >
             <img src={limitedIcon} alt="" style={{ width: iconSize, height: iconSize }} />
-            <span style={{ color: '#3f3f3f' }}>Private</span>
+            <span style={{ color: '#3f3f3f' }}>{t('privateAccess')}</span>
           </li>
         </ul>
       )}

@@ -9,6 +9,7 @@ import gridicon from '../../App/assets/imgs/fi-sr-grid.svg';
 import useApi from 'shared/hooks/api';
 import { getStoredAuthToken, storeAuthToken, removeStoredAuthToken } from 'shared/utils/authToken';
 import { getPriorityMeta } from 'shared/utils/priorities';
+import { useLanguage } from 'context/LanguageContext'; // <-- импорт контекста языка
 import {
   Navbar,
   LeftSection,
@@ -40,6 +41,7 @@ const propTypes = {
   onToggleAdminMode: PropTypes.func,
   project: PropTypes.object,
   hideAssignedDropdown: PropTypes.bool,
+  createDisabled: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -53,6 +55,8 @@ const ProjectNavbar = ({
   onToggleAdminMode,
   project,
   hideAssignedDropdown = false,
+  createDisabled = false,
+
 }) => {
   const history = useHistory();
   const [hoveredDropdown, setHoveredDropdown] = useState(null);
@@ -78,6 +82,10 @@ const ProjectNavbar = ({
   };
   const initials = getInitials(currentUserName);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  
+  // --- язык ---
+  const { locale, switchLanguage, t } = useLanguage();
+
   const openDropdown = (name) => {
     if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     setHoveredDropdown(name);
@@ -105,13 +113,19 @@ const ProjectNavbar = ({
   };
 
   const handleYourWorkClick = (destination) => {
-  history.push(`/your-work?tab=${destination}`);
-  setHoveredDropdown(null);
+    history.push(`/your-work?tab=${destination}`);
+    setHoveredDropdown(null);
   };
   const handleLogout = () => {
     removeStoredAuthToken();
     history.push('/authenticate');
   };
+
+  // переключение языка (EN <-> RU)
+  const toggleLanguage = () => {
+    switchLanguage(locale === 'en' ? 'ru' : 'en');
+  };
+
   return (
     <Navbar>
       <LeftSection>
@@ -133,20 +147,20 @@ const ProjectNavbar = ({
           >
             <NavItemBox primary={hoveredDropdown === 'your-work'}>
               <Link to="/your-work" style={{ textDecoration: 'none', color: 'inherit' }}>
-                <NavItemPrimary>Your work</NavItemPrimary>
+                <NavItemPrimary>{t('yourWork')}</NavItemPrimary>
               </Link>
               <Icon size={20} type="chevron-down" />
             </NavItemBox>
             {hoveredDropdown === 'your-work' && (
               <DropdownMenu onMouseEnter={keepDropdownOpen}>
                 <DropdownItem onClick={() => handleYourWorkClick('worked-on')}>
-                  Worked on
+                  {t('workedOn')}
                 </DropdownItem>
                 <DropdownItem onClick={() => handleYourWorkClick('viewed')}>
-                  Viewed
+                  {t('viewed')}
                 </DropdownItem>
                 <DropdownItem onClick={() => handleYourWorkClick('starred')}>
-                  Starred
+                  {t('starred')}
                 </DropdownItem>
               </DropdownMenu>
             )}
@@ -157,7 +171,7 @@ const ProjectNavbar = ({
             <NavItemBox
               onClick={() => history.push('/your-work?tab=assigned-to-me')}
             >
-              <NavItem>Assigned to me</NavItem>
+              <NavItem>{t('assignedToMe')}</NavItem>
             </NavItemBox>
           ) : (
             <DropdownWrapper
@@ -171,7 +185,7 @@ const ProjectNavbar = ({
                   setHoveredDropdown(null);
                 }}
               >
-                <NavItem>Assigned to me</NavItem>
+                <NavItem>{t('assignedToMe')}</NavItem>
                 <Icon size={20} type="chevron-down" />
               </NavItemBox>
               {hoveredDropdown === 'tasks' && (
@@ -187,37 +201,42 @@ const ProjectNavbar = ({
                         </DropdownItem>
                       ))
                     ) : (
-                      <DropdownItem>No tasks assigned</DropdownItem>
+                      <DropdownItem>{t('noTasks')}</DropdownItem>
                     )
                   ) : (
-                    <DropdownItem>Loading...</DropdownItem>
+                    <DropdownItem>{t('loading')}</DropdownItem>
                   )}
                 </DropdownMenu>
               )}
             </DropdownWrapper>
           )}
 
-          <CreateButton onClick={issueCreateModalOpen}>Create</CreateButton>
+          <CreateButton
+            onClick={issueCreateModalOpen}
+            disabled={createDisabled} 
+          >
+            {t('create')}
+          </CreateButton>
         </NavItems>
       </LeftSection>
 
       <SearchContainer>
         <Icon type="search" size={20} />
         <SearchInput
-          placeholder="Search"
+          placeholder={t('search')}
           onClick={issueSearchModalOpen}
           readOnly
         />
       </SearchContainer>
 
       <RightSection>
-        <IconBtn title="Notifications">
+        <IconBtn title={t('notifications')}>
           <BellIcon size={25} color="currentColor" />
         </IconBtn>
-        <IconBtn title="Help">
+        <IconBtn title={t('help')}>
           <Icon type="help" size={20} />
         </IconBtn>
-        <IconBtn title="Settings">
+        <IconBtn title={t('settings')}>
           <Icon type="settings" size={20} />
         </IconBtn>
         <div style={{ position: 'relative' }}>
@@ -233,8 +252,12 @@ const ProjectNavbar = ({
               style={{ right: 0, left: 'auto', minWidth: '120px' }}
               onMouseLeave={() => setShowUserMenu(false)}
             >
+              {/* Кнопка смены языка – над выходом */}
+              <DropdownItem onClick={toggleLanguage}>
+                {t('language')}: {locale.toUpperCase()}
+              </DropdownItem>
               <DropdownItem onClick={handleLogout}>
-                Log out
+                {t('logOut')}
               </DropdownItem>
             </DropdownMenu>
           )}

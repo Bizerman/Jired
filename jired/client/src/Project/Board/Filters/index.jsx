@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { xor } from 'lodash';
 import { Icon } from 'shared/components';
 import useCurrentUser from 'shared/hooks/currentUser';
+import { useLanguage } from 'context/LanguageContext';
 import {
   Filters,
   LeftFilters,
@@ -21,8 +22,8 @@ const propTypes = {
   defaultFilters: PropTypes.object.isRequired,
   filters: PropTypes.object.isRequired,
   mergeFilters: PropTypes.func.isRequired,
-  showOnlyDone: PropTypes.bool,                     // новое
-  onClearDoneFilter: PropTypes.func,                // новое
+  showOnlyDone: PropTypes.bool,
+  onClearDoneFilter: PropTypes.func,
 };
 
 const ProjectBoardFilters = ({
@@ -34,17 +35,14 @@ const ProjectBoardFilters = ({
   onClearDoneFilter,
 }) => {
   const { currentUserId } = useCurrentUser();
+  const { t } = useLanguage();
   const { searchTerm, userIds, myOnly, recent } = filters;
 
-  // Кнопка Clear All видна, если есть локальные фильтры ИЛИ активен фильтр "Done"
   const hasLocalFilters = !!searchTerm || userIds.length > 0 || myOnly || recent;
   const showClearAll = hasLocalFilters || showOnlyDone;
 
-  // Сброс вообще всего: локальные фильтры + done‑фильтр
   const handleClearAll = () => {
-    // сначала сбрасываем локальные фильтры
     mergeFilters(defaultFilters);
-    // если включён done‑фильтр, переходим на доску без него
     if (showOnlyDone && onClearDoneFilter) {
       onClearDoneFilter();
     }
@@ -56,7 +54,7 @@ const ProjectBoardFilters = ({
         <SearchInput
           icon="search"
           value={searchTerm}
-          placeholder="Search board"
+          placeholder={t('searchBoard')}
           onChange={value => mergeFilters({ searchTerm: value })}
         />
 
@@ -78,7 +76,7 @@ const ProjectBoardFilters = ({
           isActive={myOnly}
           onClick={() => mergeFilters({ myOnly: !myOnly })}
         >
-          Only My Issues
+          {t('onlyMyIssues')}
         </StyledButton>
 
         <StyledButton
@@ -86,22 +84,22 @@ const ProjectBoardFilters = ({
           isActive={recent}
           onClick={() => mergeFilters({ recent: !recent })}
         >
-          Recently Updated
+          {t('recentlyUpdated')}
         </StyledButton>
 
         {showClearAll && (
-          <ClearAll onClick={handleClearAll}>Clear all</ClearAll>
+          <ClearAll onClick={handleClearAll}>{t('clearAll')}</ClearAll>
         )}
       </LeftFilters>
 
       <RightFilters>
         <GroupByBtn>
           <Icon type="issues" size={16} />
-          Group by: Status
+          {t('groupByStatus')}
         </GroupByBtn>
         <GroupByBtn>
           <Icon type="more" size={16} />
-          More
+          {t('more')}
         </GroupByBtn>
       </RightFilters>
     </Filters>

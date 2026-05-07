@@ -9,6 +9,7 @@ import Navbar from '../Project/Navbar';
 import IssueSearch from '../Project/IssueSearch';
 import IssueCreate from '../Project/IssueCreate';
 import defaultProjectIcon from 'App/assets/imgs/projectdefault.svg';
+import { useLanguage } from 'context/LanguageContext';
 import {
   PageWrapper,
   WorkHeader,
@@ -58,6 +59,7 @@ const getProjectIconBg = (projectId) => {
 const YourWork = () => {
   const history = useHistory();
   const location = useLocation();
+  const { t } = useLanguage();
   const searchParams = new URLSearchParams(location.search);
   const initialTab = searchParams.get('tab') || 'worked-on';
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -100,18 +102,17 @@ const YourWork = () => {
 
   const currentUserId = currentUser?.id;
 
-  // Задачи, назначенные на меня – загружаем, когда узнаем currentUserId
+  // Задачи, назначенные на меня
   const [myIssues, setMyIssues] = useState([]);
   const [isTasksLoading, setIsTasksLoading] = useState(false);
 
   useEffect(() => {
     if (!currentUserId) return;
     setIsTasksLoading(true);
-    // Используем явный ID пользователя, а не 'me', для надёжности
     api.get(`/issues.json?assigned_to_id=${currentUserId}&status_id=*&limit=1000`)
       .then(res => {
         const fetched = res.issues || [];
-        console.log('YourWork: my issues count =', fetched.length); // отладка
+        console.log('YourWork: my issues count =', fetched.length);
         setMyIssues(fetched);
       })
       .catch(err => {
@@ -120,7 +121,6 @@ const YourWork = () => {
       .finally(() => setIsTasksLoading(false));
   }, [currentUserId]);
 
-  // Открытые задачи (не is_closed)
   const myOpenIssues = myIssues.filter(issue => !issue.status?.is_closed);
 
   const [recentProjects, setRecentProjects] = useState([]);
@@ -150,44 +150,44 @@ const YourWork = () => {
     : { name: 'Jired', issues: [] };
 
   const TaskList = ({ issues }) => (
-  <TaskListContainer>
-    {issues.length === 0 ? (
-      <div style={{ padding: 16, color: '#7e7e7e' }}>No tasks found</div>
-    ) : (
-      issues.map(issue => {
-        const creator = issue.author;
-        const creatorName = creator?.name || 'Unknown';
-        const creatorAvatar = creator?.avatarUrl;
-        const projectName = issue.project?.name || 'Unknown project';
-        const issueId = issue.id;
-        const title = issue.subject;
+    <TaskListContainer>
+      {issues.length === 0 ? (
+        <div style={{ padding: 16, color: '#7e7e7e' }}>{t('noTasksFound')}</div>
+      ) : (
+        issues.map(issue => {
+          const creator = issue.author;
+          const creatorName = creator?.name || t('unknown');
+          const creatorAvatar = creator?.avatarUrl;
+          const projectName = issue.project?.name || t('unknownProject');
+          const issueId = issue.id;
+          const title = issue.subject;
 
-        return (
-          <TaskListItem key={issue.id} onClick={() => history.push(`/project/board/issues/${issue.id}`)}>
-            <TaskLeft>
-              <TaskIconBox>
-                <svg width="23" height="23" viewBox="0 0 23 23" fill="none">
-                  <path d="M17.8887 5.11108H8.94428C8.60539 5.11108 8.28039 5.24571 8.04076 5.48534C7.80113 5.72497 7.6665 6.04997 7.6665 6.38886V7.66664H8.94428V6.38886H17.8887V12.7778H16.6109V14.0555H17.8887C18.2276 14.0555 18.5526 13.9209 18.7923 13.6813C19.0319 13.4416 19.1665 13.1166 19.1665 12.7778V6.38886C19.1665 6.04997 19.0319 5.72497 18.7923 5.48534C18.5526 5.24571 18.2276 5.11108 17.8887 5.11108Z" fill="white"/>
-                  <path d="M14.0557 8.94446H5.11127C4.77239 8.94446 4.44738 9.07908 4.20775 9.31871C3.96812 9.55834 3.8335 9.88335 3.8335 10.2222V16.6111C3.8335 16.95 3.96812 17.275 4.20775 17.5146C4.44738 17.7543 4.77239 17.8889 5.11127 17.8889H14.0557C14.3946 17.8889 14.7196 17.7543 14.9592 17.5146C15.1989 17.275 15.3335 16.95 15.3335 16.6111V10.2222C15.3335 9.88335 15.1989 9.55834 14.9592 9.31871C14.7196 9.07908 14.3946 8.94446 14.0557 8.94446ZM5.11127 16.6111V10.2222H14.0557V16.6111H5.11127Z" fill="white"/>
-                </svg>
-              </TaskIconBox>
-              <TaskInfo>
-                <TaskItemTitle>{title}</TaskItemTitle>
-                <TaskItemMeta>
-                  LP-{issueId} · {projectName}
-                </TaskItemMeta>
-              </TaskInfo>
-            </TaskLeft>
-            <TaskRight>
-              <AvatarPic name={creatorName} avatarUrl={creatorAvatar} size={32} />
-              <CreatorName>{creatorName}</CreatorName>
-            </TaskRight>
-          </TaskListItem>
-        );
-      })
-    )}
-  </TaskListContainer>
-);
+          return (
+            <TaskListItem key={issue.id} onClick={() => history.push(`/project/board/issues/${issue.id}`)}>
+              <TaskLeft>
+                <TaskIconBox>
+                  <svg width="23" height="23" viewBox="0 0 23 23" fill="none">
+                    <path d="M17.8887 5.11108H8.94428C8.60539 5.11108 8.28039 5.24571 8.04076 5.48534C7.80113 5.72497 7.6665 6.04997 7.6665 6.38886V7.66664H8.94428V6.38886H17.8887V12.7778H16.6109V14.0555H17.8887C18.2276 14.0555 18.5526 13.9209 18.7923 13.6813C19.0319 13.4416 19.1665 13.1166 19.1665 12.7778V6.38886C19.1665 6.04997 19.0319 5.72497 18.7923 5.48534C18.5526 5.24571 18.2276 5.11108 17.8887 5.11108Z" fill="white"/>
+                    <path d="M14.0557 8.94446H5.11127C4.77239 8.94446 4.44738 9.07908 4.20775 9.31871C3.96812 9.55834 3.8335 9.88335 3.8335 10.2222V16.6111C3.8335 16.95 3.96812 17.275 4.20775 17.5146C4.44738 17.7543 4.77239 17.8889 5.11127 17.8889H14.0557C14.3946 17.8889 14.7196 17.7543 14.9592 17.5146C15.1989 17.275 15.3335 16.95 15.3335 16.6111V10.2222C15.3335 9.88335 15.1989 9.55834 14.9592 9.31871C14.7196 9.07908 14.3946 8.94446 14.0557 8.94446ZM5.11127 16.6111V10.2222H14.0557V16.6111H5.11127Z" fill="white"/>
+                  </svg>
+                </TaskIconBox>
+                <TaskInfo>
+                  <TaskItemTitle>{title}</TaskItemTitle>
+                  <TaskItemMeta>
+                    LP-{issueId} · {projectName}
+                  </TaskItemMeta>
+                </TaskInfo>
+              </TaskLeft>
+              <TaskRight>
+                <AvatarPic name={creatorName} avatarUrl={creatorAvatar} size={32} />
+                <CreatorName>{creatorName}</CreatorName>
+              </TaskRight>
+            </TaskListItem>
+          );
+        })
+      )}
+    </TaskListContainer>
+  );
 
   const handleProjectSwitch = (projectId) => {
     localStorage.setItem('currentProjectId', projectId);
@@ -206,6 +206,7 @@ const YourWork = () => {
         issueCreateModalOpen={issueCreateModalHelpers.open}
         project={defaultProject}
         hideAssignedDropdown
+        createDisabled
       />
 
       {issueSearchModalHelpers.isOpen() && (
@@ -238,13 +239,13 @@ const YourWork = () => {
       )}
       <PageWrapper>
         <WorkHeader>
-          <Title>Your work</Title>
+          <Title>{t('yourWork')}</Title>
           <Divider />
         </WorkHeader>
 
         <SectionTitle style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>Recent projects</span>
-          <ViewAllLink onClick={() => history.push('/projects')}>View all projects</ViewAllLink>
+          <span>{t('recentProjects')}</span>
+          <ViewAllLink onClick={() => history.push('/projects')}>{t('viewAllProjects')}</ViewAllLink>
         </SectionTitle>
 
         <ProjectGrid>
@@ -269,18 +270,18 @@ const YourWork = () => {
                   <div>
                     <CardHeader>
                       <CardTitle>{project.name}</CardTitle>
-                      <CardMeta>{stripHtml(project.description) || 'No description'}</CardMeta>
+                      <CardMeta>{stripHtml(project.description) || t('noDescription')}</CardMeta>
                     </CardHeader>
                     <CardDivider />
                     <CardLinks>
-                      <LinkText>My open issues</LinkText>
+                      <LinkText>{t('myOpenIssues')}</LinkText>
                       <IssueCount>{myOpenCount}</IssueCount>
                     </CardLinks>
                     <LinkText as="button" onClick={(e) => {
-                      e.stopPropagation(); // чтобы не сработал onClick всей карточки
+                      e.stopPropagation();
                       handleProjectSwitchWithDoneFilter(project.id);
                     }}>
-                      Done issues
+                      {t('doneIssues')}
                     </LinkText>
                   </div>
                 </CardBody>
@@ -289,24 +290,24 @@ const YourWork = () => {
           })}
           <ProjectCardCreate onClick={() => history.push('/project/create')}>
             <Icon type="plus" size={24} color={color.textMedium} />
-            <span style={{ color: color.textMedium, fontWeight: 500 }}>Create project</span>
+            <span style={{ color: color.textMedium, fontWeight: 500 }}>{t('createProject')}</span>
           </ProjectCardCreate>
         </ProjectGrid>
 
         <TaskTabs>
-          <Tab active={activeTab === 'worked-on'} onClick={() => history.push('/your-work?tab=worked-on')}>Worked on</Tab>
-          <Tab active={activeTab === 'viewed'} onClick={() => history.push('/your-work?tab=viewed')}>Viewed</Tab>
-          <Tab active={activeTab === 'assigned-to-me'} onClick={() => history.push('/your-work?tab=assigned-to-me')}>Assigned to me</Tab>
-          <Tab active={activeTab === 'starred'} onClick={() => history.push('/your-work?tab=starred')}>Starred</Tab>
+          <Tab active={activeTab === 'worked-on'} onClick={() => history.push('/your-work?tab=worked-on')}>{t('workedOn')}</Tab>
+          <Tab active={activeTab === 'viewed'} onClick={() => history.push('/your-work?tab=viewed')}>{t('viewed')}</Tab>
+          <Tab active={activeTab === 'assigned-to-me'} onClick={() => history.push('/your-work?tab=assigned-to-me')}>{t('assignedToMe')}</Tab>
+          <Tab active={activeTab === 'starred'} onClick={() => history.push('/your-work?tab=starred')}>{t('starred')}</Tab>
         </TaskTabs>
 
         {isTasksLoading ? (
-          <div style={{ padding: 20 }}>Loading tasks...</div>
+          <div style={{ padding: 20 }}>{t('loadingTasks')}</div>
         ) : (
           <>
             {activeTab === 'worked-on' && (
               <div>
-                <SectionTitle>Recently updated by you</SectionTitle>
+                <SectionTitle>{t('recentlyUpdatedByYou')}</SectionTitle>
                 <TaskList
                   issues={myIssues
                     .sort((a, b) => new Date(b.updated_on) - new Date(a.updated_on))
@@ -318,13 +319,13 @@ const YourWork = () => {
 
             {activeTab === 'assigned-to-me' && (
               <div>
-                <SectionTitle>Open tasks assigned to me</SectionTitle>
+                <SectionTitle>{t('openTasksAssignedToMe')}</SectionTitle>
                 <TaskList issues={myOpenIssues} />
               </div>
             )}
 
-            {activeTab === 'viewed' && <SectionTitle>Viewed items (coming soon)</SectionTitle>}
-            {activeTab === 'starred' && <SectionTitle>Starred (coming soon)</SectionTitle>}
+            {activeTab === 'viewed' && <SectionTitle>{t('viewedComingSoon')}</SectionTitle>}
+            {activeTab === 'starred' && <SectionTitle>{t('starredComingSoon')}</SectionTitle>}
           </>
         )}
       </PageWrapper>

@@ -7,6 +7,7 @@ import toast from 'shared/utils/toast';
 import useApi from 'shared/hooks/api';
 import { Form, Breadcrumbs, Modal } from 'shared/components';
 import { color as colorConst, color } from 'shared/utils/styles';
+import { useLanguage } from 'context/LanguageContext';
 import { AccessSelect } from '../../ProjectCreate/AccessSelect';
 import defaultProjectIcon from 'App/assets/imgs/projectdefault.svg';
 
@@ -74,6 +75,7 @@ const CheckboxField = ({ name, label }) => {
 const ProjectSettings = ({ project, fetchProject }) => {
   const [{ isUpdating }, updateProject] = useApi.put(`/projects/${project.id}.json`);
   const [{ isDeleting }, deleteProject] = useApi.delete(`/projects/${project.id}.json`);
+  const { t } = useLanguage();
 
   const [icon, setIcon] = useState(null);
   const [iconPreview, setIconPreview] = useState(null);
@@ -130,7 +132,7 @@ const ProjectSettings = ({ project, fetchProject }) => {
       localStorage.setItem(`project_icon_bg_${project.id}`, iconBgColor);
 
       await fetchProject();
-      toast.success('Changes have been saved successfully.');
+      toast.success(t('changesSaved'));
       window.dispatchEvent(new CustomEvent('project-icon-updated', { detail: project.id }));
       window.location.href = '/project/board';
     } catch (error) {
@@ -152,17 +154,16 @@ const ProjectSettings = ({ project, fetchProject }) => {
       } catch (e) {}
       
       localStorage.removeItem('currentProjectId');
-      toast.success('Project deleted.');
+      toast.success(t('projectDeleted'));
       window.location.href = '/project/board';
     } catch (error) {
-      toast.error('Failed to delete project.');
+      toast.error(t('projectDeleteFailed'));
       setDeleteModalOpen(false);
     }
   };
 
   return (
     <>
-      {/* ----- Форма редактирования ----- */}
       <Form
         initialValues={Form.initialValues(project, get => ({
           name: get('name'),
@@ -182,26 +183,24 @@ const ProjectSettings = ({ project, fetchProject }) => {
         {(formik) => (
           <FormCont>
             <FormElement>
-              <Breadcrumbs items={['Projects', project.name, 'Project Details']} />
-              <FormHeading>Project Details</FormHeading>
+              <Breadcrumbs items={['Projects', project.name, t('projectDetails')]} />
+              <FormHeading>{t('projectDetails')}</FormHeading>
 
               <RequiredNote>
-                <span>Required fields are marked with an asterisk </span>
+                <span>{t('requiredFieldsNote')} </span>
                 <Asterisk>*</Asterisk>
               </RequiredNote>
 
               <FormFields style={{ marginTop: '24px' }}>
-                {/* Поле Name */}
                 <FieldGroup>
-                  <FieldLabel><span>Name </span><Asterisk>*</Asterisk></FieldLabel>
+                  <FieldLabel><span>{t('name')} </span><Asterisk>*</Asterisk></FieldLabel>
                   <Field name="name">
                     {({ field }) => <StyledInput {...field} placeholder="e.g. Landing Page" />}
                   </Field>
                 </FieldGroup>
 
-                {/* Иконка */}
                 <FieldGroup>
-                  <FieldLabel>Project Icon</FieldLabel>
+                  <FieldLabel>{t('projectIcon')}</FieldLabel>
                   <IconCard>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <IconPreview bg={iconBgColor}>
@@ -213,69 +212,65 @@ const ProjectSettings = ({ project, fetchProject }) => {
                       </IconPreview>
                       <div style={{ flex: 1 }}>
                         <p style={{ margin: 0, fontWeight: 500, color: '#202020', fontSize: '14px' }}>
-                          Choose an icon
+                          {t('chooseIconDesc')}
                         </p>
                         <p style={{ margin: '2px 0 0', color: '#7e7e7e', fontSize: '12px' }}>
-                          Upload an image and pick a background colour
+                          {t('uploadImageDesc')}
                         </p>
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
                       <UploadLabel>
                         <input type="file" accept="image/*" onChange={handleIconChange} style={{ display: 'none' }} />
-                        Choose image
+                        {t('chooseImage')}
                       </UploadLabel>
                       <ColorInputLabel>
                         <ColorInput type="color" value={iconBgColor} onChange={(e) => setIconBgColor(e.target.value)} />
-                        Background
+                        {t('background')}
                       </ColorInputLabel>
                     </div>
                   </IconCard>
                 </FieldGroup>
 
-                {/* Identifier (disabled) */}
                 <KeyField>
-                  <FieldLabel>Identifier</FieldLabel>
+                  <FieldLabel>{t('identifier')}</FieldLabel>
                   <Field name="identifier">
                     {({ field }) => (
-                      <KeyInput {...field} disabled title="Cannot be changed after creation. Used in URLs." />
+                      <KeyInput {...field} disabled title={t('identifierDisabledTip')} />
                     )}
                   </Field>
                 </KeyField>
 
-                {/* Description */}
                 <FieldGroup>
-                  <FieldLabel style={{ marginBottom: 0 }}>Description</FieldLabel>
+                  <FieldLabel style={{ marginBottom: 0 }}>{t('description')}</FieldLabel>
                   <Form.Field.TextEditor
                     name="description"
-                    tip="Describe the project in as much detail as you'd like."
+                    tip={t('descriptionTip')}
                   />
                 </FieldGroup>
 
-                {/* Homepage */}
                 <FieldGroup>
-                  <FieldLabel>Homepage</FieldLabel>
+                  <FieldLabel>{t('homepage')}</FieldLabel>
                   <Field name="homepage">
-                    {({ field }) => <StyledInput {...field} placeholder="Link to project homepage (optional)" />}
+                    {({ field }) => <StyledInput {...field} placeholder={t('homepagePlaceholder')} />}
                   </Field>
                 </FieldGroup>
 
-                {/* Access */}
                 <FieldGroup>
-                  <FieldLabel>Access</FieldLabel>
+                  <FieldLabel>{t('access')}</FieldLabel>
                   <AccessSelect compact />
                 </FieldGroup>
-                <CheckboxField name="inherit_members" label="Inherit members" />
+                <CheckboxField name="inherit_members" label={t('inheritMembers')} />
               </FormFields>
 
               <hr style={{ margin: '32px 0 24px', border: 'none', borderTop: `1px solid ${colorConst.borderLightest}` }} />
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 32 }}>
                 <SubmitButton onClick={formik.submitForm} disabled={formik.isSubmitting || isDeleting}>
-                  {formik.isSubmitting ? 'Saving...' : 'Save changes'}
+                  {formik.isSubmitting ? t('saving') : t('saveChanges')}
                 </SubmitButton>
                 <DeleteButton type="button" onClick={handleDeleteClick} disabled={isDeleting || formik.isSubmitting}>
-                  {isDeleting ? 'Deleting...' : 'Delete project'}
+                  {isDeleting ? t('deleting') : t('deleteProject')}
                 </DeleteButton>
               </div>
             </FormElement>
@@ -283,7 +278,6 @@ const ProjectSettings = ({ project, fetchProject }) => {
         )}
       </Form>
 
-      {/* ----- Модальное окно подтверждения удаления ----- */}
       <Modal
         isOpen={isDeleteModalOpen}
         onClose={handleDeleteCancel}
@@ -291,19 +285,17 @@ const ProjectSettings = ({ project, fetchProject }) => {
         width={480}
         renderContent={() => (
           <DeleteModalContent>
-            <DeleteModalTitle>Delete project</DeleteModalTitle>
+            <DeleteModalTitle>{t('deleteProjectTitle')}</DeleteModalTitle>
             <DeleteModalMessage>
-              Are you sure you want to delete <strong>{project.name}</strong>? This
-              action will permanently delete the project, all its issues, and
-              associated data. <strong>This cannot be undone.</strong>
+              {t('deleteProjectMessage', { projectName: project.name })}
             </DeleteModalMessage>
             <DeleteModalActions>
               <DeleteModalCancelButton onClick={handleDeleteCancel} disabled={isDeleting}>
-                Cancel
+                {t('cancel')}
               </DeleteModalCancelButton>
               <DeleteModalConfirmButton onClick={handleDeleteConfirm} disabled={isDeleting}>
                 <Icon type="trash" size={16} color="currentColor" />
-                {isDeleting ? 'Deleting...' : 'Delete project'}
+                {isDeleting ? t('deleting') : t('deleteProject')}
               </DeleteModalConfirmButton>
             </DeleteModalActions>
           </DeleteModalContent>

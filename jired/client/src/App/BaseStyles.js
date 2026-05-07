@@ -1,14 +1,13 @@
 import { createGlobalStyle } from 'styled-components';
 
 import { color, font, mixin } from 'shared/utils/styles';
-
 export default createGlobalStyle`
   html, body, #root {
     height: auto;
     min-height: 100%;
     min-width: 768px;
   }
-
+  
   body {
     margin: 0;
     padding: 0;
@@ -136,5 +135,18 @@ export default createGlobalStyle`
     touch-action: manipulation;
   }
 
+  @font-face {
+  font-family: 'Outfit';
+  src: url('./assets/fonts/Outfit-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+}
+
+  body.font-ru,
+  body.font-ru * {
+    font-family: 'Outfit', sans-serif !important;
+  }
+
   ${mixin.placeholderColor(color.textLight)}
 `;
+

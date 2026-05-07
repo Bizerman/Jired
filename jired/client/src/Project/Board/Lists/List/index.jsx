@@ -6,6 +6,7 @@ import { intersection } from 'lodash';
 import { IssueStatusCopy, IssueStatusToName, IssueStatus } from 'shared/constants/issues';
 import Issue from './Issue';
 import { List, Title, StatusBadge, IssuesCount, Issues, DragPlaceholder } from './Styles';
+import { useLanguage } from 'context/LanguageContext'; // ← импорт
 
 const statusBadgeColors = {
   backlog:    { bg: '#e8e1e1', textColor: '#5e3f3f' },
@@ -13,7 +14,12 @@ const statusBadgeColors = {
   done:       { bg: '#e4fcef', textColor: '#0B875B' },
 };
 
-// Вспомогательные функции фильтрации и сортировки
+const statusKeyMap = {
+  backlog: 'backlog',
+  inprogress: 'inProgress',
+  done: 'done',
+};
+
 const filterIssues = (projectIssues, filters, currentUserId) => {
   const { searchTerm, userIds, myOnly, recent } = filters;
   let issues = projectIssues;
@@ -30,36 +36,36 @@ const filterIssues = (projectIssues, filters, currentUserId) => {
 const getSortedListIssues = (issues, status) =>
   issues.filter(issue => issue.statusKey === status);
 
-const formatIssuesCount = (allListIssues, filteredListIssues) => {
-  if (allListIssues.length !== filteredListIssues.length) {
-    return `${filteredListIssues.length} of ${allListIssues.length}`;
-  }
-  return allListIssues.length;
-};
-
 const ProjectBoardList = ({
   status, project, filters, currentUserId, selectedIssueIds,
-  onIssueSelect, hiddenIssueIds, priorities,draggingSourceStatus  
+  onIssueSelect, hiddenIssueIds, priorities, draggingSourceStatus  
 }) => {
+  const { t } = useLanguage();
   const filteredIssues = filterIssues(project.issues, filters, currentUserId);
   const filteredListIssues = getSortedListIssues(filteredIssues, status)
     .filter(issue => !hiddenIssueIds.has(issue.id));
   const allListIssues = getSortedListIssues(project.issues, status);
   const badgeColors = statusBadgeColors[status] || { bg: '#e8e1e1', textColor: '#725757' };
 
-   return (
+  const statusTitle = t(statusKeyMap[status] || status);
+  const totalCount = allListIssues.length;
+  const visibleCount = filteredListIssues.length;
+
+  const countText = totalCount === visibleCount
+    ? totalCount
+    : `${visibleCount} ${t('of')} ${totalCount}`;
+
+  return (
     <Droppable droppableId={status}>
       {(provided, snapshot) => {
-        // Подсветка только для межколоночного переноса
         const isCrossColumnDragOver = snapshot.isDraggingOver && draggingSourceStatus !== status;
-
         return (
           <List isDraggingOver={isCrossColumnDragOver}>
             <Title>
               <StatusBadge bg={badgeColors.bg} textColor={badgeColors.textColor}>
-                {IssueStatusCopy[status]}
+                {statusTitle}
               </StatusBadge>
-              <IssuesCount>{formatIssuesCount(allListIssues, filteredListIssues)}</IssuesCount>
+              <IssuesCount>{countText}</IssuesCount>
             </Title>
             <Issues ref={provided.innerRef} {...provided.droppableProps}>
               {filteredListIssues.map((issue, index) => (

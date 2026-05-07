@@ -87,6 +87,10 @@ export const CreateButton = styled.button`
   &:hover {
     opacity: 0.9;
   }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 
 export const RightSection = styled.div`

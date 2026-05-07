@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useHistory } from 'react-router-dom';
 import { Icon } from 'shared/components';
+import { useLanguage } from 'context/LanguageContext';
 import {
   Header,
   ProjectTitle,
@@ -18,8 +19,10 @@ const propTypes = {
 
 const ProjectBoardHeader = ({ project }) => {
   const history = useHistory();
+  const { t } = useLanguage();
   const [iconSrc, setIconSrc] = useState(defaultProjectIcon);
   const [iconBg, setIconBg] = useState(color.backgroundMedium);
+
   useEffect(() => {
     const savedIcon = localStorage.getItem(`project_icon_${project.id}`);
     if (savedIcon) {
@@ -30,9 +33,9 @@ const ProjectBoardHeader = ({ project }) => {
   }, [project.id]);
 
   useEffect(() => {
-  const savedBg = localStorage.getItem(`project_icon_bg_${project.id}`);
-  if (savedBg) setIconBg(savedBg);
-}, [project.id]);
+    const savedBg = localStorage.getItem(`project_icon_bg_${project.id}`);
+    if (savedBg) setIconBg(savedBg);
+  }, [project.id]);
 
   const handleSettingsClick = () => {
     history.push('/project/settings');
@@ -52,7 +55,7 @@ const ProjectBoardHeader = ({ project }) => {
       </ProjectTitle>
       <SettingsBtn onClick={handleSettingsClick}>
         <Icon type="settings" size={16} />
-        Project settings
+        {t('projectSettings')}
       </SettingsBtn>
     </Header>
   );

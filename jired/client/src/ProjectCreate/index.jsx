@@ -4,10 +4,11 @@ import { useFormikContext, Field } from 'formik';
 
 import toast from 'shared/utils/toast';
 import useApi from 'shared/hooks/api';
-import api from 'shared/utils/api';               // прямой доступ к API для Extended API
+import api from 'shared/utils/api';
 import { Form } from 'shared/components';
 import { color } from 'shared/utils/styles';
 import { Icon } from 'shared/components';
+import { useLanguage } from 'context/LanguageContext';
 import bgImage from 'App/assets/imgs/project-creation.svg';
 import bgImageBoard from 'App/assets/imgs/project-creation-board.svg';
 import defaultProjectIcon from 'App/assets/imgs/projectdefault.svg';
@@ -42,7 +43,6 @@ import {
   ShowMoreBtn,
 } from './Styles';
 
-// Кастомный чекбокс (без изменений)
 const CheckboxField = ({ name, label }) => {
   const { values, setFieldValue } = useFormikContext();
   const checked = values[name];
@@ -84,6 +84,7 @@ const IdentifierAutoGenerator = () => {
 
 const ProjectCreate = () => {
   const history = useHistory();
+  const { t } = useLanguage();
   const [{ isCreating }, createProject] = useApi.post('/projects.json');
 
   const [icon, setIcon] = useState(null);
@@ -109,7 +110,6 @@ const ProjectCreate = () => {
     reader.readAsDataURL(file);
   };
 
-  // Проверка и создание трёх статусов
   const ensureDefaultStatuses = async () => {
     const requiredStatuses = [
       { name: 'Backlog', is_closed: false },
@@ -117,7 +117,6 @@ const ProjectCreate = () => {
       { name: 'Done', is_closed: true },
     ];
 
-    // Получаем текущие статусы
     const { issue_statuses } = await api.get('/issue_statuses.json');
     const existingNames = (issue_statuses || []).map(s => s.name.toLowerCase());
 
@@ -151,7 +150,6 @@ const ProjectCreate = () => {
       const projectId = response?.project?.id;
 
       if (projectId) {
-        // Автоматически создаём стандартные статусы (Backlog, In Progress, Done)
         await ensureDefaultStatuses();
 
         if (icon) {
@@ -166,7 +164,7 @@ const ProjectCreate = () => {
           localStorage.setItem('recentProjects', JSON.stringify(updated));
         } catch (e) {}
 
-        toast.success('Project created!');
+        toast.success(t('projectCreated'));
         window.location.href = `/project/board?newProjectId=${projectId}`;
       } else {
         throw new Error('Project ID not received');
@@ -179,7 +177,7 @@ const ProjectCreate = () => {
   return (
     <PageWrapper>
       <TopBar>
-        <BackBtn onClick={() => history.goBack()}>← Back to your work</BackBtn>
+        <BackBtn onClick={() => history.goBack()}>{t('backToYourWork')}</BackBtn>
       </TopBar>
       <Form
         initialValues={{
@@ -200,14 +198,11 @@ const ProjectCreate = () => {
             <IdentifierAutoGenerator />
             <LeftPanel>
               <HeaderSection>
-                <Title>Create project</Title>
+                <Title>{t('createProjectTitle')}</Title>
                 <DescriptionGroup>
-                  <DescText>
-                    Explore what’s possible when you collaborate with your team.
-                    Edit project details anytime in project settings.
-                  </DescText>
+                  <DescText>{t('createProjectDesc')}</DescText>
                   <RequiredNote>
-                    <span>Required fields are marked with an asterisk </span>
+                    <span>{t('requiredFieldsNote')} </span>
                     <Asterisk>*</Asterisk>
                   </RequiredNote>
                 </DescriptionGroup>
@@ -216,14 +211,14 @@ const ProjectCreate = () => {
               <FormSection>
                 <FormFields>
                   <FieldGroup>
-                    <FieldLabel><span>Name </span><Asterisk>*</Asterisk></FieldLabel>
+                    <FieldLabel><span>{t('name')} </span><Asterisk>*</Asterisk></FieldLabel>
                     <Field name="name">
-                      {({ field }) => <StyledInput {...field} placeholder="e.g. Landing Page" />}
+                      {({ field }) => <StyledInput {...field} placeholder={t('namePlaceholder')} />}
                     </Field>
                   </FieldGroup>
 
                   <FieldGroup>
-                    <FieldLabel>Project Icon</FieldLabel>
+                    <FieldLabel>{t('projectIcon')}</FieldLabel>
                     <IconCard>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                         <IconPreview bg={iconBgColor}>
@@ -235,10 +230,10 @@ const ProjectCreate = () => {
                         </IconPreview>
                         <div style={{ flex: 1 }}>
                           <p style={{ margin: 0, fontWeight: 600, color: '#202020', fontSize: '1rem' }}>
-                            Choose an icon
+                            {t('chooseIconDesc')}
                           </p>
                           <p style={{ margin: '4px 0 0', color: '#7e7e7e', fontSize: '0.875rem' }}>
-                            Upload an image and pick a background colour
+                            {t('uploadImageDesc')}
                           </p>
                         </div>
                       </div>
@@ -250,7 +245,7 @@ const ProjectCreate = () => {
                             onChange={handleIconChange}
                             style={{ display: 'none' }}
                           />
-                          Choose image
+                          {t('chooseImage')}
                         </UploadLabel>
                         <ColorInputLabel>
                           <ColorInput
@@ -258,7 +253,7 @@ const ProjectCreate = () => {
                             value={iconBgColor}
                             onChange={(e) => setIconBgColor(e.target.value)}
                           />
-                          Background
+                          {t('background')}
                         </ColorInputLabel>
                       </div>
                     </IconCard>
@@ -266,31 +261,31 @@ const ProjectCreate = () => {
 
                   <ShowMoreBtn onClick={() => setShowAdvanced(!showAdvanced)}>
                     <Icon type={showAdvanced ? 'chevron-up' : 'chevron-down'} size={16} />
-                    <span>{showAdvanced ? 'Show less' : 'Show more'}</span>
+                    <span>{showAdvanced ? t('showLess') : t('showMore')}</span>
                   </ShowMoreBtn>
 
                   {showAdvanced && (
                     <>
                       <KeyField>
-                        <FieldLabel><span>Key </span><Asterisk>*</Asterisk></FieldLabel>
+                        <FieldLabel><span>{t('key')} </span><Asterisk>*</Asterisk></FieldLabel>
                         <Field name="identifier">
                           {({ field }) => <KeyInput {...field} placeholder="LP" maxLength={10} readOnly />}
                         </Field>
                       </KeyField>
 
                       <FieldGroup>
-                        <FieldLabel>Description</FieldLabel>
+                        <FieldLabel>{t('description')}</FieldLabel>
                         <Field name="description">
-                          {({ field }) => <StyledInput {...field} placeholder="Optional description" />}
+                          {({ field }) => <StyledInput {...field} placeholder={t('optionalDescription')} />}
                         </Field>
                       </FieldGroup>
 
                       <FieldGroup>
-                        <FieldLabel>Access</FieldLabel>
+                        <FieldLabel>{t('access')}</FieldLabel>
                         <AccessSelect />
                       </FieldGroup>
 
-                      <CheckboxField name="inherit_members" label="Inherit members" />
+                      <CheckboxField name="inherit_members" label={t('inheritMembers')} />
                     </>
                   )}
                 </FormFields>
@@ -299,7 +294,7 @@ const ProjectCreate = () => {
                   onClick={formik.submitForm}
                   disabled={formik.isSubmitting || isCreating}
                 >
-                  {formik.isSubmitting || isCreating ? 'Creating...' : 'Create Project'}
+                  {formik.isSubmitting || isCreating ? t('creating') : t('createProjectBtn')}
                 </SubmitButton>
               </FormSection>
             </LeftPanel>

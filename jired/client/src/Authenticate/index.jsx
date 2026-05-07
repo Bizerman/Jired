@@ -8,8 +8,9 @@ import {
   storeAuthToken,
   removeStoredAuthToken,
 } from 'shared/utils/authToken';
+import { useLanguage } from 'context/LanguageContext';
 
-import projectIcon from '../favicon.png'; // импорт вашей иконки
+import projectIcon from '../favicon.png';
 
 import {
   PageContainer,
@@ -33,6 +34,7 @@ import {
 
 const Authenticate = () => {
   const history = useHistory();
+  const { t, locale, switchLanguage } = useLanguage();
   const [apiKey, setApiKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [checkingExisting, setCheckingExisting] = useState(true);
@@ -68,7 +70,7 @@ const Authenticate = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!apiKey.trim()) {
-      toast.error('Please enter your API key');
+      toast.error(t('enterApiKey'));
       return;
     }
     setLoading(true);
@@ -85,36 +87,57 @@ const Authenticate = () => {
       }
 
       storeAuthToken(apiKey.trim());
-      toast.success('Login successful');
+      toast.success(t('loginSuccess'));
       history.push('/your-work');
     } catch (err) {
       console.error(err);
       removeStoredAuthToken();
-      toast.error('Invalid API key. Check your Redmine account settings.');
+      toast.error(t('invalidApiKey'));
     } finally {
       setLoading(false);
     }
   };
 
+  const toggleLanguage = () => {
+    switchLanguage(locale === 'en' ? 'ru' : 'en');
+  };
+
   if (checkingExisting) {
     return (
       <CheckingWrapper>
-        <p>Checking saved API key…</p>
+        <p>{t('checkingSaved')}</p>
       </CheckingWrapper>
     );
   }
 
   return (
     <PageContainer>
+      {/* Кнопка смены языка справа сверху */}
+      <div style={{ position: 'absolute', top: 20, right: 20 }}>
+        <button
+          onClick={toggleLanguage}
+          style={{
+            background: 'none',
+            border: '1px solid #ccc',
+            borderRadius: 4,
+            padding: '4px 12px',
+            cursor: 'pointer',
+            fontSize: 14,
+            color: '#333',
+          }}
+        >
+          {locale.toUpperCase()}
+        </button>
+      </div>
+
       <Card>
-        {/* Логотип + название */}
         <LogoRow>
           <LogoImage src={projectIcon} alt="Jired logo" />
           <AppTitle>Jired</AppTitle>
         </LogoRow>
 
         <VerificationRow>
-          <span>API‑key verification</span>
+          <span>{t('apiVerification')}</span>
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <circle cx="10" cy="10" r="8" stroke="#12B76A" strokeWidth="2" fill="none" />
             <path
@@ -128,14 +151,14 @@ const Authenticate = () => {
         </VerificationRow>
 
         <StyledForm onSubmit={handleSubmit}>
-          <Title>Sign in with API‑key</Title>
+          <Title>{t('signInTitle')}</Title>
 
           <FieldsWrapper>
             <FieldGroup>
-              <Label>API‑Key</Label>
+              <Label>{t('apiKeyLabel')}</Label>
               <InputWrapper>
                 <Input
-                  placeholder="Paste your Redmine API key"
+                  placeholder={t('apiKeyPlaceholder')}
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   type="password"
@@ -146,10 +169,10 @@ const Authenticate = () => {
 
           <Actions>
             <SubmitButton type="submit" disabled={loading || !apiKey.trim()}>
-              {loading ? 'Verifying…' : 'Continue'}
+              {loading ? t('verifying') : t('continueBtn')}
             </SubmitButton>
             <Hint>
-              Your API‑key is available in your Redmine account settings.
+              {t('apiKeyHint')}
             </Hint>
           </Actions>
         </StyledForm>

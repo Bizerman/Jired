@@ -3,6 +3,7 @@ import { useHistory } from 'react-router-dom';
 import useApi from 'shared/hooks/api';
 import { PageLoader } from 'shared/components';
 import Navbar from '../Project/Navbar';
+import { useLanguage } from 'context/LanguageContext';
 import {
   PageWrapper,
   WorkHeader,
@@ -45,6 +46,7 @@ const getProjectIconBg = (projectId) => {
 
 const AllProjects = () => {
     const history = useHistory();
+    const { t } = useLanguage();
     const issueSearchModalHelpers = createQueryParamModalHelpers('issue-search');
     const issueCreateModalHelpers = createQueryParamModalHelpers('issue-create');
 
@@ -55,7 +57,6 @@ const AllProjects = () => {
         ? { ...projects[0], issues: [] }
         : { name: 'Jired', issues: [] };
 
-    // ВАЖНО: status_id=* чтобы получить и открытые, и закрытые задачи
     const [{ data: allIssuesData }] = useApi.get('/issues.json?status_id=*&limit=1000');
     const allIssues = allIssuesData?.issues || [];
 
@@ -90,18 +91,19 @@ const AllProjects = () => {
             issueCreateModalOpen={issueSearchModalHelpers.open}
             project={defaultProject}
             hideAssignedDropdown
+            createDisabled
         />
 
         <PageWrapper>
             <WorkHeader>
-            <Title>All projects</Title>
+            <Title>{t('allProjects')}</Title>
             <Divider />
             </WorkHeader>
 
             <SectionTitle style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>Projects</span>
+                <span>{t('projectsHeader')}</span>
                 <ViewAllLink onClick={() => history.push('/project/create')}>
-                    + Create project
+                    {t('createProjectHeader')}
                 </ViewAllLink>
                 </SectionTitle>
             <ProjectGrid>
@@ -125,34 +127,34 @@ const AllProjects = () => {
                     <CardBody>
                     <CardHeader>
                         <CardTitle>{project.name}</CardTitle>
-                        <CardMeta>{stripHtml(project.description) || 'No description'}</CardMeta>
+                        <CardMeta>{stripHtml(project.description) || t('noDescription')}</CardMeta>
                     </CardHeader>
 
                     <MetaList>
                         <MetaRow>
-                        <MetaLabel>Identifier</MetaLabel>
+                        <MetaLabel>{t('identifierLabel')}</MetaLabel>
                         <MetaValue>{project.identifier}</MetaValue>
                         </MetaRow>
                         <MetaRow>
-                        <MetaLabel>Access</MetaLabel>
-                        <MetaValue>{project.is_public ? 'Public' : 'Private'}</MetaValue>
+                        <MetaLabel>{t('accessLabel')}</MetaLabel>
+                        <MetaValue>{project.is_public ? t('publicAccess') : t('privateAccess')}</MetaValue>
                         </MetaRow>
                         <MetaRow>
-                        <MetaLabel>Members</MetaLabel>
-                        <MetaValue>{project.inherit_members ? 'Inherited' : 'Not inherited'}</MetaValue>
+                        <MetaLabel>{t('membersLabel')}</MetaLabel>
+                        <MetaValue>{project.inherit_members ? t('inherited') : t('notInherited')}</MetaValue>
                         </MetaRow>
                     </MetaList>
 
                     <CardDivider />
                     <CardLinks>
-                        <LinkText>All tasks</LinkText>
+                        <LinkText>{t('allTasks')}</LinkText>
                         <IssueCount>{stats.total}</IssueCount>
                     </CardLinks>
                     <ProgressBar>
                         <ProgressFill width={stats.progress} />
                     </ProgressBar>
                     <CardFooter>
-                        <FooterText>{stats.closed} of {stats.total} completed</FooterText>
+                        <FooterText>{t('completedText', { closed: stats.closed, total: stats.total })}</FooterText>
                     </CardFooter>
                     </CardBody>
                 </ProjectCard>

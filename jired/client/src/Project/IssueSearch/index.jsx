@@ -2,10 +2,9 @@ import React, { Fragment, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import { get } from 'lodash';
-
 import useApi from 'shared/hooks/api';
 import { IssueTypeIcon } from 'shared/components';
-
+import { useLanguage } from 'context/LanguageContext';
 import NoResultsSVG from './NoResultsSvg';
 import {
   IssueSearch,
@@ -28,6 +27,7 @@ const propTypes = {
 };
 
 const ProjectIssueSearch = ({ project }) => {
+  const { t } = useLanguage();
   const [isSearchTermEmpty, setIsSearchTermEmpty] = useState(true);
 
   const [{ data, isLoading }, fetchIssues] = useApi.get('/issues.json', {}, { lazy: true });
@@ -44,7 +44,6 @@ const ProjectIssueSearch = ({ project }) => {
     setIsSearchTermEmpty(!searchTerm);
 
     if (searchTerm) {
-      // Поиск только по названию задачи (subject)
       fetchIssues({ subject: `~${searchTerm}` });
     }
   };
@@ -54,7 +53,7 @@ const ProjectIssueSearch = ({ project }) => {
       <SearchInputCont>
         <SearchInputDebounced
           autoFocus
-          placeholder="Search issues by summary..."
+          placeholder={t('searchPlaceholder')}
           onChange={handleSearchChange}
         />
         <SearchIcon type="search" size={22} />
@@ -63,14 +62,14 @@ const ProjectIssueSearch = ({ project }) => {
 
       {isSearchTermEmpty && recentIssues.length > 0 && (
         <Fragment>
-          <SectionTitle>Recent Issues</SectionTitle>
+          <SectionTitle>{t('recentIssues')}</SectionTitle>
           {recentIssues.map(renderIssue)}
         </Fragment>
       )}
 
       {!isSearchTermEmpty && matchingIssues.length > 0 && (
         <Fragment>
-          <SectionTitle>Matching Issues</SectionTitle>
+          <SectionTitle>{t('matchingIssues')}</SectionTitle>
           {matchingIssues.map(issue => renderIssue(issue))}
         </Fragment>
       )}
@@ -78,8 +77,8 @@ const ProjectIssueSearch = ({ project }) => {
       {!isSearchTermEmpty && !isLoading && matchingIssues.length === 0 && (
         <NoResults>
           <NoResultsSVG />
-          <NoResultsTitle>We couldn&apos;t find anything matching your search</NoResultsTitle>
-          <NoResultsTip>Try again with a different term.</NoResultsTip>
+          <NoResultsTitle>{t('searchNoResults')}</NoResultsTitle>
+          <NoResultsTip>{t('searchNoResultsTip')}</NoResultsTip>
         </NoResults>
       )}
     </IssueSearch>

@@ -72,6 +72,7 @@ export const font = {
   medium: 'font-family: "CircularStdMedium"; font-weight: normal;',
   bold: 'font-family: "CircularStdBold"; font-weight: normal;',
   black: 'font-family: "CircularStdBlack"; font-weight: normal;',
+  outfitMedium: 'font-family: "Outfit"; font-weight: 500;',
   size: size => `font-size: ${size}px;`,
 };
 

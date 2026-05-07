@@ -4,7 +4,8 @@ import { Form } from 'shared/components';
 import Icon from 'shared/components/Icon';
 import toast from 'shared/utils/toast';
 import api from 'shared/utils/api';
-import { getPriorityMeta } from 'shared/utils/priorities'; // общая утилита для иконок приоритетов
+import { getPriorityMeta } from 'shared/utils/priorities';
+import { useLanguage } from 'context/LanguageContext';
 import checkboxIcon from 'App/assets/imgs/check-icon.svg';
 import {
   FormElement,
@@ -27,14 +28,15 @@ import {
 } from './Styles';
 
 const propTypes = {
-  project: PropTypes.object,            // теперь не обязателен, если передан – используется
-  projects: PropTypes.array,            // список проектов для выбора (опционально)
-  fetchProject: PropTypes.func,         // опционально, если проект выбран позже
+  project: PropTypes.object,
+  projects: PropTypes.array,
+  fetchProject: PropTypes.func,
   onCreate: PropTypes.func.isRequired,
   modalClose: PropTypes.func.isRequired,
 };
 
 const IssueCreate = ({ project, projects, fetchProject, onCreate, modalClose }) => {
+  const { t } = useLanguage();
   const [isCreating, setIsCreating] = useState(false);
   const [hasAttachment, setHasAttachment] = useState(false);
   const [trackers, setTrackers] = useState([]);
@@ -69,7 +71,6 @@ const IssueCreate = ({ project, projects, fetchProject, onCreate, modalClose }) 
       let currentStatuses = sRes.issue_statuses || [];
       let currentPriorities = pRes.issue_priorities || [];
 
-      // Сохраняем текущего пользователя
       if (userRes?.user) {
         const u = userRes.user;
         setCurrentUser({
@@ -79,7 +80,6 @@ const IssueCreate = ({ project, projects, fetchProject, onCreate, modalClose }) 
         });
       }
 
-      // 1. Обязательные статусы
       const neededStatuses = [
         { name: 'Backlog', is_closed: false },
         { name: 'In Progress', is_closed: false },
@@ -100,7 +100,6 @@ const IssueCreate = ({ project, projects, fetchProject, onCreate, modalClose }) 
         throw new Error('Backlog status is missing and could not be created.');
       }
 
-      // 2. Стандартные приоритеты
       const neededPriorities = [
         { name: 'Low', is_default: false },
         { name: 'Medium', is_default: true },
@@ -118,7 +117,6 @@ const IssueCreate = ({ project, projects, fetchProject, onCreate, modalClose }) 
         }
       }
 
-      // 3. Трекеры
       if (currentTrackers.length === 0) {
         setConfigMessage('Creating default tracker...');
         const defaultStatusId = currentStatuses[0]?.id;
@@ -137,7 +135,6 @@ const IssueCreate = ({ project, projects, fetchProject, onCreate, modalClose }) 
         }
       }
 
-      // Привязываем трекеры к проекту (если проект уже выбран)
       if (selectedProjectId) {
         for (const tracker of currentTrackers) {
           try {
@@ -162,7 +159,6 @@ const IssueCreate = ({ project, projects, fetchProject, onCreate, modalClose }) 
     }
   };
 
-  // Загрузка участников проекта
   const fetchProjectUsers = async (projectId) => {
     try {
       const { memberships } = await api.get(`/projects/${projectId}/memberships.json`);
@@ -185,7 +181,6 @@ const IssueCreate = ({ project, projects, fetchProject, onCreate, modalClose }) 
     }
   }, [selectedProjectId]);
 
-  // ─── Создание задачи ──────────────────────────────────────
   const handleCreate = async (values) => {
     if (!backlogStatusId) {
       toast.error('Backlog status is not ready.');
@@ -214,7 +209,7 @@ const IssueCreate = ({ project, projects, fetchProject, onCreate, modalClose }) 
         },
       };
       await api.post('/issues.json', payload);
-      toast.success('Issue created successfully!');
+      toast.success(t('issueCreated'));
       onCreate();
       modalClose();
     } catch (error) {
@@ -225,23 +220,20 @@ const IssueCreate = ({ project, projects, fetchProject, onCreate, modalClose }) 
     }
   };
 
-  // ─── Опции для селектов ──────────────────────────────────
   const priorityOptions = priorities.map(p => ({ value: p.id, label: p.name }));
 
-  // Объединённый список пользователей: участники проекта + текущий пользователь (без дубликатов)
   const allUsers = [...projectUsers];
   if (currentUser && !allUsers.some(u => u.id === currentUser.id)) {
     allUsers.push(currentUser);
   }
   const assigneeOptions = allUsers.map(u => ({ value: u.id, label: u.name }));
 
-  // Проекты для выбора (если не передан конкретный проект)
   const projectOptions = projects ? projects.map(p => ({ value: p.id, label: p.name })) : [];
 
   if (loadingMeta || configMessage) {
     return (
       <div style={{ padding: 20, textAlign: 'center' }}>
-        <p>{configMessage || 'Loading configuration…'}</p>
+        <p>{configMessage || t('loadingConfig')}</p>
       </div>
     );
   }
@@ -250,12 +242,11 @@ const IssueCreate = ({ project, projects, fetchProject, onCreate, modalClose }) 
     return (
       <div style={{ padding: 20, color: 'red', textAlign: 'center' }}>
         <p>Could not initialize trackers or required status (Backlog).</p>
-        <button onClick={fetchMeta}>Retry</button>
+        <button onClick={fetchMeta}>{t('retry')}</button>
       </div>
     );
   }
 
-  // Получаем иконку для приоритета по умолчанию (или выбранного)
   const getPriorityIcon = (priorityId) => {
     const meta = getPriorityMeta({ priority: { id: priorityId } }, priorities);
     return meta ? <img src={meta.src} alt="" style={{ width: '1rem', height: '1rem' }} /> : null;
@@ -288,18 +279,17 @@ const IssueCreate = ({ project, projects, fetchProject, onCreate, modalClose }) 
               <IconBox>
                 <img src={checkboxIcon} alt="" />
               </IconBox>
-              <FormHeading>Create Issue</FormHeading>
+              <FormHeading>{t('newIssue')}</FormHeading>
             </FormHeadingWrapper>
 
             <FormLayout>
               <MainColumn>
-                {/* Выбор проекта (если не задан жестко) */}
                 {!project && projectOptions.length > 0 && (
                   <div>
-                    <FieldLabel>Project *</FieldLabel>
+                    <FieldLabel>{t('projectSelect')}</FieldLabel>
                     <Form.Field.Select
                       name="project_id"
-                      options={[{ value: '', label: 'Select a project' }, ...projectOptions]}
+                      options={[{ value: '', label: t('selectProject') }, ...projectOptions]}
                       component={StyledSelect}
                       onChange={(e) => setSelectedProjectId(e.target.value ? Number(e.target.value) : null)}
                       value={selectedProjectId || ''}
@@ -308,38 +298,38 @@ const IssueCreate = ({ project, projects, fetchProject, onCreate, modalClose }) 
                 )}
 
                 <div>
-                  <FieldLabel>Summary *</FieldLabel>
+                  <FieldLabel>{t('summary')} *</FieldLabel>
                   <Form.Field.Input
                     name="subject"
-                    placeholder="What needs to be done?"
+                    placeholder={t('summaryPlaceholder')}
                     component={StyledInput}
                     autoFocus
                   />
                 </div>
 
                 <div>
-                  <FieldLabel>Description</FieldLabel>
+                  <FieldLabel>{t('description')}</FieldLabel>
                   <Form.Field.Textarea
                     name="description"
-                    placeholder="Add details, steps to reproduce, or acceptance criteria..."
+                    placeholder={t('descriptionPlaceholder')}
                     component={StyledTextArea}
                   />
                 </div>
 
                 <div>
-                  <FieldLabel>Attachments</FieldLabel>
+                  <FieldLabel>{t('attachments')}</FieldLabel>
                   <AttachmentZone onClick={() => setHasAttachment(!hasAttachment)} hasFile={hasAttachment}>
                     <Icon type="attach" size={16} />
-                    {hasAttachment ? 'File_TOR.pdf (Attached)' : 'Drop files here or click to browse'}
+                    {hasAttachment ? 'File_TOR.pdf (Attached)' : t('attachmentsDrop')}
                   </AttachmentZone>
                 </div>
 
                 <div>
-                  <FieldLabel>Parent Issue</FieldLabel>
+                  <FieldLabel>{t('parentIssue')}</FieldLabel>
                   <Form.Field.Input
                     name="parent_issue_id"
                     type="text"
-                    placeholder="Search by issue key or ID..."
+                    placeholder={t('parentIssuePlaceholder')}
                     component={StyledInput}
                   />
                 </div>
@@ -347,16 +337,16 @@ const IssueCreate = ({ project, projects, fetchProject, onCreate, modalClose }) 
 
               <SidebarColumn>
                 <div>
-                  <FieldLabel>Assignee</FieldLabel>
+                  <FieldLabel>{t('assignee')}</FieldLabel>
                   <Form.Field.Select
                     name="assigned_to_id"
-                    options={[{ value: '', label: 'Unassigned' }, ...assigneeOptions]}
+                    options={[{ value: '', label: t('unassigned') }, ...assigneeOptions]}
                     component={StyledSelect}
                   />
                 </div>
 
                 <div>
-                  <FieldLabel>Priority</FieldLabel>
+                  <FieldLabel>{t('priority')}</FieldLabel>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ marginTop: '20px' }}>
                       {getPriorityIcon(currentPriorityId)}
@@ -373,18 +363,18 @@ const IssueCreate = ({ project, projects, fetchProject, onCreate, modalClose }) 
 
                 <FieldRow>
                   <div>
-                    <FieldLabel>Start date</FieldLabel>
+                    <FieldLabel>{t('startDate')}</FieldLabel>
                     <Form.Field.Input name="start_date" type="date" component={StyledInput} />
                   </div>
                   <div>
-                    <FieldLabel>Due date</FieldLabel>
+                    <FieldLabel>{t('dueDate')}</FieldLabel>
                     <Form.Field.Input name="due_date" type="date" component={StyledInput} />
                   </div>
                 </FieldRow>
 
                 <FieldRow>
                   <div>
-                    <FieldLabel>Original estimate</FieldLabel>
+                    <FieldLabel>{t('originalEstimate')}</FieldLabel>
                     <Form.Field.Input
                       name="estimated_hours"
                       type="number"
@@ -395,7 +385,7 @@ const IssueCreate = ({ project, projects, fetchProject, onCreate, modalClose }) 
                     />
                   </div>
                   <div>
-                    <FieldLabel>Done (%)</FieldLabel>
+                    <FieldLabel>{t('donePercent')}</FieldLabel>
                     <Form.Field.Input
                       name="done_ratio"
                       type="number"
@@ -411,9 +401,9 @@ const IssueCreate = ({ project, projects, fetchProject, onCreate, modalClose }) 
             </FormLayout>
 
             <Actions>
-              <CancelButton type="button" onClick={modalClose}>Cancel</CancelButton>
+              <CancelButton type="button" onClick={modalClose}>{t('cancelBtn')}</CancelButton>
               <SubmitButton onClick={formik.submitForm} disabled={isCreating || formik.isSubmitting}>
-                {isCreating ? 'Creating...' : 'Create'}
+                {isCreating ? t('creatingBtn') : t('createBtn')}
               </SubmitButton>
             </Actions>
           </FormElement>
