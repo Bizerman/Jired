@@ -17,6 +17,7 @@ import IssueSearch from './IssueSearch';
 import IssueCreate from './IssueCreate';
 import ProjectSettings from './ProjectSettings';
 import ProjectSummary from './Summary';
+import ProjectReports from './Reports';
 import ProjectCreate from '../ProjectCreate';
 import { ProjectPage } from './Styles';
 import { IssueStatus } from 'shared/constants/issues';
@@ -206,7 +207,14 @@ const Project = () => {
       };
     });
   }, []);
-
+  const updateAllIssues = useCallback((newIssues) => {
+    setLocalProjectData(prevData => ({
+      project: {
+        ...prevData.project,
+        issues: newIssues,
+      },
+    }));
+  }, [setLocalProjectData]);
   const moveIssuesInColumn = useCallback((statusKey, orderedIds) => {
     setLocalProjectData(prevData => {
       const issues = [...prevData.project.issues];
@@ -368,7 +376,33 @@ const Project = () => {
           </>
         )}
       />
-
+      <Route
+        path={`${match.path}/reports`}
+        render={() => (
+          <>
+            {!isCreatePage && (
+              <>
+                <Navbar
+                  issueSearchModalOpen={issueSearchModalHelpers.open}
+                  issueCreateModalOpen={issueCreateModalHelpers.open}
+                  project={project}
+                />
+                <Sidebar project={project} />
+              </>
+            )}
+            <div style={{
+              padding: '67.5px 32px 62.5px 515px',
+              minHeight: '100vh',
+              background: '#fff',
+              fontFamily: "'Outfit', sans-serif",
+            }}>
+              <ProjectBoardHeader project={project} />
+              <ProjectToolbar baseUrl={match.url.replace(/\/board$/, '')} />
+              <ProjectReports project={project} />
+            </div>
+          </>
+        )}
+      />
       {/* Остальные страницы (board, settings и т.д.) */}
       {!isSummaryPage && (
         <ProjectPage isCreatePage={isCreatePage}>
@@ -393,6 +427,7 @@ const Project = () => {
                 updateLocalProjectIssues={updateLocalProjectIssues}
                 moveIssueInList={moveIssueInList}
                 moveIssuesInColumn={moveIssuesInColumn}
+                updateAllIssues={updateAllIssues} // <-- НОВЫЙ ПРОП
               />
             )}
           />

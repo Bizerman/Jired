@@ -26,18 +26,45 @@ import {
   TaskInfo,
   TaskRight,
   CreatorName,
+  StatsGrid,      
+  StatCard,
+  StatValue,
+  StatLabel, 
 } from './Styles';   // AvatarPic больше не импортируется
 
 const ProjectSummary = ({ project }) => {
   const history = useHistory();
   const issues = project.issues || [];
-  const openIssues = issues.filter(i => !i.status?.is_closed);
+  const openIssues = issues.filter(i => !i.status?.is_closed && i.statusKey !== 'done');
   const closedIssues = issues.filter(i => i.status?.is_closed);
   const total = issues.length;
   const progress = total > 0 ? Math.round((closedIssues.length / total) * 100) : 0;
+  const inProgressIssues = issues.filter(i => i.statusKey === 'inprogress');
+  const backlogIssues = issues.filter(i => i.statusKey === 'backlog');
+  const doneIssues = issues.filter(i => i.status?.is_closed || i.statusKey === 'done');
+
 
   return (
     <SummaryPage>
+      <SectionTitle>Task Statistics</SectionTitle>
+      <StatsGrid>
+        <StatCard>
+          <StatLabel>Total Tasks</StatLabel>
+          <StatValue>{total}</StatValue>
+        </StatCard>
+        <StatCard>
+          <StatLabel>Backlog</StatLabel>
+          <StatValue>{backlogIssues.length}</StatValue>
+        </StatCard>
+        <StatCard>
+          <StatLabel>In Progress</StatLabel>
+          <StatValue>{inProgressIssues.length}</StatValue>
+        </StatCard>
+        <StatCard>
+          <StatLabel>Done</StatLabel>
+          <StatValue>{doneIssues.length}</StatValue>
+        </StatCard>
+      </StatsGrid>
       <SectionTitle>Project Details</SectionTitle>
       <MetaList>
         <MetaRow>
@@ -57,7 +84,6 @@ const ProjectSummary = ({ project }) => {
           <MetaValue>{project.is_public ? 'Public' : 'Private'}</MetaValue>
         </MetaRow>
       </MetaList>
-
       <SectionTitle style={{ marginTop: 32 }}>Progress</SectionTitle>
       <div>
         <span style={{ fontSize: 14, color: '#725757' }}>All tasks: {total}</span>

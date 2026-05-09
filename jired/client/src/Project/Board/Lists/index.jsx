@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import PropTypes from 'prop-types';
 import { DragDropContext } from 'react-beautiful-dnd';
 import axios from 'axios';
 import useApi from 'shared/hooks/api';
@@ -10,11 +9,18 @@ import List from './List';
 import { Lists } from './Styles';
 import toast from 'shared/utils/toast';
 
-const ProjectBoardLists = ({ project, filters, updateLocalProjectIssues, moveIssueInList, moveIssuesInColumn, showOnlyDone}) => {
+const ProjectBoardLists = ({
+  project, filters, updateLocalProjectIssues,
+  moveIssueInList, moveIssuesInColumn, showOnlyDone,
+  groups, onGroupsChange, updateAllIssues
+}) => {
   const { currentUserId } = useCurrentUser();
   const [selectedIssueIds, setSelectedIssueIds] = useState(new Set());
   const [hiddenIssueIds, setHiddenIssueIds] = useState(new Set());
+  
+  // Состояния для правильной подсветки
   const [draggingSourceStatus, setDraggingSourceStatus] = useState(null);
+  const [draggedOverStatus, setDraggedOverStatus] = useState(null);
 
   const handleIssueSelect = (issueId, multi) => {
     setSelectedIssueIds(prev => {
@@ -30,193 +36,181 @@ const ProjectBoardLists = ({ project, filters, updateLocalProjectIssues, moveIss
     });
   };
 
-  const handleIssueDrop = useCallback(async (result, currentHidden) => {
-    const { draggableId, destination, source } = result;
-    if (!destination) return;
-    if (destination.droppableId === source.droppableId && destination.index === source.index) return;
-
-    const issueId = Number(draggableId);
-    const sourceStatusKey = source.droppableId;
-    const destStatusKey = destination.droppableId;
-
-    // --- Перемещение внутри одной колонки ---
-    if (sourceStatusKey === destStatusKey) {
-      const isMulti = selectedIssueIds.size > 1 && selectedIssueIds.has(issueId);
-
-      if (!isMulti) {
-        moveIssueInList(sourceStatusKey, source.index, destination.index);
-        return;
-      }
-
-      // МУЛЬТИ-ПЕРЕМЕЩЕНИЕ
-      const allColIssues = project.issues.filter(i => i.statusKey === sourceStatusKey);
-
-      // ID выбранных задач, которые находятся в этой колонке
-      const movingIds = new Set(
-        Array.from(selectedIssueIds).filter(id => allColIssues.some(i => i.id === id))
-      );
-
-      // Задачи, которые остаются на месте (не выделены)
-      const staticItems = allColIssues.filter(i => !movingIds.has(i.id));
-
-      // Выделенные задачи с сохранением их текущего порядка в колонке
-      const movingItems = allColIssues.filter(i => movingIds.has(i.id));
-
-      // Видимый порядок (без скрытых) нужен для вычисления, куда вставлять
-      const visibleOrder = allColIssues.filter(i => !currentHidden.has(i.id));
-
-      // Определяем, перед каким static-элементом вставить блок movingItems
-      let insertBefore = staticItems.length; // по умолчанию в конец
-      if (destination.index < visibleOrder.length) {
-        // Смотрим, какой элемент сейчас находится на позиции destination.index в видимом списке
-        const targetVisible = visibleOrder[destination.index];
-        // Если это static-элемент, вставляем перед ним
-        if (!movingIds.has(targetVisible.id)) {
-          insertBefore = staticItems.findIndex(i => i.id === targetVisible.id);
-        } else {
-          // Если это moving-элемент, ищем следующий за ним static
-          // (ситуация маловероятна, т.к. moving скрыты, но обработаем)
-          for (let i = destination.index; i < visibleOrder.length; i++) {
-            if (!movingIds.has(visibleOrder[i].id)) {
-              insertBefore = staticItems.findIndex(s => s.id === visibleOrder[i].id);
-              break;
-            }
-          }
-        }
-      }
-
-      // Новый порядок колонки
-      const newColOrder = [
-        ...staticItems.slice(0, insertBefore),
-        ...movingItems,
-        ...staticItems.slice(insertBefore),
-      ];
-
-      moveIssuesInColumn(sourceStatusKey, newColOrder.map(i => i.id));
-      return;
-    }
-
-    // --- Перемещение между колонками ---
-    const newStatusKey = destination.droppableId;
-    const statusName = IssueStatusToName[newStatusKey];
-    if (!statusName) return;
-
-    const newStatusId = project.statuses.find(s => s.name === statusName)?.id;
-    console.log('Target status name:', statusName);
-    console.log('Available statuses:', project.statuses);
-    console.log('Found status id:', newStatusId);
-    if (!newStatusId) return;
-
-    const authToken = getStoredAuthToken();
-    if (!authToken) return;
-
-    const isMulti = selectedIssueIds.size > 0 && selectedIssueIds.has(issueId);
-    const idsToUpdate = isMulti ? Array.from(selectedIssueIds) : [issueId];
-
-    const oldStatuses = {};
-    idsToUpdate.forEach(id => {
-      const issue = project.issues.find(i => i.id === id);
-      if (issue) oldStatuses[id] = { statusKey: issue.statusKey, status_id: issue.status_id };
-    });
-
-    // Оптимистичное обновление (визуальное)
-    idsToUpdate.forEach(id => {
-    updateLocalProjectIssues(id, {
-      statusKey: newStatusKey,
-      status_id: newStatusId,
-      updatedAt: new Date().toISOString(),
-    });
-  });
-
-    // Проверка блокировок перед реальным сохранением
-    if (newStatusKey === IssueStatus.DONE) {
-      for (const id of idsToUpdate) {
-        try {
-          const { data: issueData } = await axios.get(
-            `/redmine/issues/${id}.json?include=relations`,
-            { headers: { 'X-Redmine-API-Key': authToken } }
-          );
-          const relations = issueData.issue.relations || [];
-          for (const rel of relations) {
-            const isBlocked =
-              (rel.relation_type === 'blocks' && rel.issue_to_id === id) ||
-              (rel.relation_type === 'blocked_by' && rel.issue_from_id === id);
-            if (isBlocked) {
-              // Определяем ID задачи-блокиратора
-              const blockerId = rel.relation_type === 'blocks' ? rel.issue_id : rel.issue_to_id;
-              // Запрашиваем статус блокиратора
-              const { data: blockerData } = await axios.get(
-                `/redmine/issues/${blockerId}.json`,
-                { headers: { 'X-Redmine-API-Key': authToken } }
-              );
-              const blockerStatus = blockerData.issue.status?.name;
-              if (blockerStatus !== 'Done') {
-                toast.error(`Task #${id} is blocked by #${blockerId} (${blockerStatus}). Complete it first.`);
-                // Откатываем все перемещённые задачи
-                idsToUpdate.forEach(uid => {
-                  if (oldStatuses[uid]) {
-                    updateLocalProjectIssues(uid, oldStatuses[uid]);
-                  }
-                });
-                return; // прерываем операцию
-              }
-            }
-          }
-        } catch (e) {
-          console.error(e);
-          toast.error('Unable to verify blockers');
-          // Откатываем при ошибке
-          idsToUpdate.forEach(uid => {
-            if (oldStatuses[uid]) {
-              updateLocalProjectIssues(uid, oldStatuses[uid]);
-            }
-          });
-          return;
-        }
-      }
-    }
-
-    // Если проверка пройдена, сохраняем на сервере
-    try {
-      await Promise.all(idsToUpdate.map(id => {
-        const params = new URLSearchParams();
-        params.append('issue[status_id]', newStatusId);
-        return axios.put(`/redmine/issues/${id}.json`, params, {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-Redmine-API-Key': authToken,
-          },
-        });
-      }));
-    } catch (error) {
-      console.error('Mass update failed', error);
-      // Откат при неудачном запросе
-      idsToUpdate.forEach(id => {
-        if (oldStatuses[id]) {
-          updateLocalProjectIssues(id, oldStatuses[id]);
-        }
-      });
-    }
-  }, [project, selectedIssueIds, updateLocalProjectIssues, moveIssueInList, moveIssuesInColumn]);
-
-  const [{ data: prioritiesData }] = useApi.get('/enumerations/issue_priorities.json');
-  const priorities = prioritiesData?.issue_priorities || [];
+  // Получаем статус из составного ID (task-zone::status::group или group-zone::status)
+  const getStatusFromDroppableId = (droppableId) => {
+    if (!droppableId) return null;
+    if (droppableId.startsWith('group-zone::')) return droppableId.split('::')[1];
+    return droppableId.split('::')[0];
+  };
 
   const handleBeforeDragStart = useCallback((start) => {
-    setDraggingSourceStatus(start.source.droppableId);
-    const draggedIssueId = Number(start.draggableId);
-    if (selectedIssueIds.has(draggedIssueId) && selectedIssueIds.size > 1) {
-      const idsToHide = new Set(selectedIssueIds);
-      idsToHide.delete(draggedIssueId);
-      setHiddenIssueIds(idsToHide);
+    const sourceStatus = getStatusFromDroppableId(start.source.droppableId);
+    setDraggingSourceStatus(sourceStatus);
+    
+    if (start.type !== 'GROUP') {
+      const draggedIssueId = Number(start.draggableId);
+      if (selectedIssueIds.has(draggedIssueId) && selectedIssueIds.size > 1) {
+        const idsToHide = new Set(selectedIssueIds);
+        idsToHide.delete(draggedIssueId);
+        setHiddenIssueIds(idsToHide);
+      }
     }
   }, [selectedIssueIds]);
 
-  const handleDragEnd = useCallback((result) => {
-    handleIssueDrop(result, hiddenIssueIds);
-    setHiddenIssueIds(new Set());
+  // Срабатывает каждый раз, когда мы проводим мышкой над новой зоной
+  const handleDragUpdate = useCallback((update) => {
+    if (!update.destination) {
+      setDraggedOverStatus(null);
+      return;
+    }
+    setDraggedOverStatus(getStatusFromDroppableId(update.destination.droppableId));
+  }, []);
+
+  const handleDragEnd = useCallback(async (result) => {
+    setDraggedOverStatus(null); // Сбрасываем подсветку
     setDraggingSourceStatus(null);
-  }, [handleIssueDrop, hiddenIssueIds]);
+    setHiddenIssueIds(new Set());
+
+    const { draggableId, destination, source, type } = result;
+    if (!destination) return;
+    if (destination.droppableId === source.droppableId && destination.index === source.index) return;
+
+    const authToken = getStoredAuthToken();
+
+    // === ЛОГИКА ПЕРЕТАСКИВАНИЯ ГРУППЫ ===
+    if (type === 'GROUP') {
+      const [_, sourceStatus, groupId] = draggableId.split('::');
+      const destStatus = getStatusFromDroppableId(destination.droppableId);
+      
+      if (sourceStatus === destStatus) return; // Игнорируем сортировку групп внутри колонки
+
+      const newStatusName = IssueStatusToName[destStatus];
+      const newStatusId = project.statuses.find(s => s.name === newStatusName)?.id;
+      if (!newStatusId) return;
+
+      let allIssues = [...project.issues];
+      
+      // Находим все задачи этой группы в исходной колонке
+      const groupTasksInSource = allIssues.filter(i => 
+        i.statusKey === sourceStatus && 
+        groups?.find(g => g.id.toString() === groupId)?.tasks.includes(i.id)
+      );
+
+      if (groupTasksInSource.length === 0) return;
+      const idsToUpdate = groupTasksInSource.map(i => i.id);
+
+      // Оптимистично меняем статусы
+      groupTasksInSource.forEach(issue => {
+        issue.statusKey = destStatus;
+        issue.status_id = newStatusId;
+        issue.updatedAt = new Date().toISOString();
+      });
+
+      // Перемещаем в конец списка (при слиянии они сами сгруппируются)
+      allIssues = allIssues.filter(i => !idsToUpdate.includes(i.id));
+      allIssues.push(...groupTasksInSource);
+      
+      if (updateAllIssues) updateAllIssues(allIssues);
+
+      // Массовое сохранение на сервере
+      if (authToken) {
+        try {
+          await Promise.all(idsToUpdate.map(id => {
+            const params = new URLSearchParams();
+            params.append('issue[status_id]', newStatusId);
+            return axios.put(`/redmine/issues/${id}.json`, params, {
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Redmine-API-Key': authToken },
+            });
+          }));
+        } catch (error) {
+          console.error('Group update failed', error);
+        }
+      }
+      return;
+    }
+
+    // === ЛОГИКА ПЕРЕТАСКИВАНИЯ ЗАДАЧ (ТВОЯ СТАРАЯ ЛОГИКА) ===
+    const issueId = Number(draggableId);
+    const sourceStatusKey = getStatusFromDroppableId(source.droppableId);
+    const destStatusKey = getStatusFromDroppableId(destination.droppableId);
+    const sourceGroupId = source.droppableId.split('::')[1] || 'ungrouped';
+    const destGroupId = destination.droppableId.split('::')[1] || 'ungrouped';
+
+    const isMulti = selectedIssueIds.size > 0 && selectedIssueIds.has(issueId);
+    const movingIds = isMulti ? Array.from(selectedIssueIds) : [issueId];
+
+    // 1. Обновляем принадлежность к группам
+    let updatedGroups = groups ? [...groups] : [];
+    if (sourceGroupId !== destGroupId) {
+      if (sourceGroupId !== 'ungrouped') {
+        updatedGroups = updatedGroups.map(g =>
+          g.id.toString() === sourceGroupId ? { ...g, tasks: g.tasks.filter(id => !movingIds.includes(id)) } : g
+        );
+      }
+      if (destGroupId !== 'ungrouped') {
+        updatedGroups = updatedGroups.map(g =>
+          g.id.toString() === destGroupId ? { ...g, tasks: [...g.tasks, ...movingIds] } : g
+        );
+      }
+      if (onGroupsChange) onGroupsChange(updatedGroups);
+    }
+
+    // 2. Глобальное позиционирование
+    let allIssues = [...project.issues];
+    const movingIssues = allIssues.filter(i => movingIds.includes(i.id));
+    allIssues = allIssues.filter(i => !movingIds.includes(i.id));
+
+    const newStatusName = IssueStatusToName[destStatusKey];
+    const newStatusId = project.statuses.find(s => s.name === newStatusName)?.id;
+
+    movingIssues.forEach(issue => {
+      if (sourceStatusKey !== destStatusKey) {
+        issue.statusKey = destStatusKey;
+        issue.status_id = newStatusId;
+        issue.updatedAt = new Date().toISOString();
+      }
+    });
+
+    const targetDroppableItems = allIssues.filter(i => {
+      if (i.statusKey !== destStatusKey) return false;
+      if (destGroupId === 'ungrouped') return !updatedGroups.some(g => g.tasks.includes(i.id));
+      const group = updatedGroups.find(g => g.id.toString() === destGroupId);
+      return group && group.tasks.includes(i.id);
+    });
+
+    let insertGlobalIndex = allIssues.length;
+    if (destination.index < targetDroppableItems.length) {
+      const targetItem = targetDroppableItems[destination.index];
+      insertGlobalIndex = allIssues.findIndex(i => i.id === targetItem.id);
+    } else if (targetDroppableItems.length > 0) {
+      const lastItem = targetDroppableItems[targetDroppableItems.length - 1];
+      insertGlobalIndex = allIssues.findIndex(i => i.id === lastItem.id) + 1;
+    } else {
+      const lastOfStatus = allIssues.findLastIndex(i => i.statusKey === destStatusKey);
+      insertGlobalIndex = lastOfStatus !== -1 ? lastOfStatus + 1 : allIssues.length;
+    }
+
+    allIssues.splice(insertGlobalIndex, 0, ...movingIssues);
+    if (updateAllIssues) updateAllIssues(allIssues);
+
+    // 3. Сохранение на сервере
+    if (sourceStatusKey !== destStatusKey && authToken) {
+      try {
+        await Promise.all(movingIds.map(id => {
+          const params = new URLSearchParams();
+          params.append('issue[status_id]', newStatusId);
+          return axios.put(`/redmine/issues/${id}.json`, params, {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Redmine-API-Key': authToken },
+          });
+        }));
+      } catch (error) {
+        console.error('Mass update failed', error);
+      }
+    }
+  }, [project, selectedIssueIds, groups, onGroupsChange, updateAllIssues]);
+
+  const [{ data: prioritiesData }] = useApi.get('/enumerations/issue_priorities.json');
+  const priorities = prioritiesData?.issue_priorities || [];
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -229,25 +223,32 @@ const ProjectBoardLists = ({ project, filters, updateLocalProjectIssues, moveIss
   }, []);
 
   return (
-    <DragDropContext
-      onDragStart={handleBeforeDragStart}
+    <DragDropContext 
+      onDragStart={handleBeforeDragStart} 
+      onDragUpdate={handleDragUpdate} 
       onDragEnd={handleDragEnd}
     >
       <Lists>
-        {Object.values(IssueStatus).map(status => (
-          <List
-            key={status}
-            status={status}
-            project={project}
-            filters={{ ...filters, showOnlyDone }}
-            currentUserId={currentUserId}
-            selectedIssueIds={selectedIssueIds}
-            onIssueSelect={handleIssueSelect}
-            hiddenIssueIds={hiddenIssueIds}
-            priorities={priorities}
-            draggingSourceStatus={draggingSourceStatus}
-          />
-        ))}
+        {Object.values(IssueStatus).map(status => {
+          // Вычисляем, подсвечивать ли колонку (если мы над ней и это не источник)
+          const isDragOver = draggedOverStatus === status && draggingSourceStatus !== status;
+
+          return (
+            <List
+              key={status}
+              status={status}
+              project={project}
+              filters={{ ...filters, showOnlyDone }}
+              currentUserId={currentUserId}
+              selectedIssueIds={selectedIssueIds}
+              onIssueSelect={handleIssueSelect}
+              hiddenIssueIds={hiddenIssueIds}
+              priorities={priorities}
+              isDragOver={isDragOver} // <-- Передаем состояние
+              groups={groups}
+            />
+          );
+        })}
       </Lists>
     </DragDropContext>
   );

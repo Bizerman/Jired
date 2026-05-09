@@ -8,14 +8,16 @@ import Authenticate from '../Authenticate';
 import PageError from 'shared/components/PageError';
 import AllProjects from '../AllProjects';
 
+import PrivateRoute from 'shared/components/PrivateRoute';
+
 const Routes = () => (
   <Router history={history}>
     <Switch>
       <Redirect exact from="/" to="/project" />
       <Route path="/authenticate" component={Authenticate} />
-      <Route path="/project" component={Project} />
-      <Route path="/projects" component={AllProjects} />
-      <Route path="/your-work" component={YourWork} />
+      <PrivateRoute path="/project" component={Project} />
+      <PrivateRoute path="/projects" component={AllProjects} />
+      <PrivateRoute path="/your-work" component={YourWork} />
       <Route component={PageError} />
     </Switch>
   </Router>

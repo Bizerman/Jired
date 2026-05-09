@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useHistory, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
 import toast from 'shared/utils/toast';
@@ -33,39 +33,42 @@ import {
 } from './Styles';
 
 const Authenticate = () => {
+
   const history = useHistory();
+  const location = useLocation();
   const { t, locale, switchLanguage } = useLanguage();
   const [apiKey, setApiKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [checkingExisting, setCheckingExisting] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
     const existingToken = getStoredAuthToken();
     if (!existingToken) {
       setCheckingExisting(false);
-      return;
+      return () => { mounted = false; };
     }
 
-    axios
-      .get('/redmine/users/current.json', {
-        headers: {
-          'X-Redmine-API-Key': existingToken,
-          Accept: 'application/json',
-        },
-      })
-      .then((response) => {
-        if (response.data && response.data.user) {
-          history.push('/your-work');
+    axios.get('/redmine/users/current.json', {
+      headers: { 'X-Redmine-API-Key': existingToken, Accept: 'application/json' },
+    })
+      .then(response => {
+        if (!mounted) return;
+        if (response.data?.user) {
+          history.push(location.state?.from?.pathname || '/your-work');
         } else {
           removeStoredAuthToken();
           setCheckingExisting(false);
         }
       })
       .catch(() => {
+        if (!mounted) return;
         removeStoredAuthToken();
         setCheckingExisting(false);
       });
-  }, [history]);
+
+    return () => { mounted = false; };
+  }, [history, location.state?.from?.pathname]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -88,7 +91,8 @@ const Authenticate = () => {
 
       storeAuthToken(apiKey.trim());
       toast.success(t('loginSuccess'));
-      history.push('/your-work');
+      const from = location.state?.from?.pathname || '/your-work';
+      history.push(from);
     } catch (err) {
       console.error(err);
       removeStoredAuthToken();

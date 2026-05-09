@@ -57,7 +57,7 @@ const ProjectToolbar = ({ baseUrl }) => {
           <ItemLabel>{t('issues')}</ItemLabel>
         </ToolbarItem>
 
-        <ToolbarItem as={NavLink} to={`${match.url}/reports`} activeClassName="active">
+        <ToolbarItem as={NavLink} to={`${baseUrl}/reports`} activeClassName="active">
           <ItemIcon>
             <Icon type="reports" size={28} />
           </ItemIcon>

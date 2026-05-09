@@ -188,6 +188,14 @@ const translations = {
     priorityMedium: 'Medium',
     priorityHigh: 'High',
     priorityCritical: 'Critical',
+    visibility: 'Visibility',
+    statusDistribution: 'Status distribution',
+    progress: 'Progress',
+    openTasks: 'Open tasks',
+    closedTasks: 'Closed tasks',
+    byPriority: 'By priority',
+    byTracker: 'By tracker',
+
 
   },
   ru: {
@@ -366,6 +374,13 @@ const translations = {
     priorityMedium: 'Средний',
     priorityHigh: 'Высокий',
     priorityCritical: 'Критический',
+    visibility: 'Видимость',
+    statusDistribution: 'Распределение по статусам',
+    progress: 'Прогресс',
+    openTasks: 'Открытых задач',
+    closedTasks: 'Закрытых задач',
+    byPriority: 'По приоритету',
+    byTracker: 'По типу задачи',
   },
 };
 

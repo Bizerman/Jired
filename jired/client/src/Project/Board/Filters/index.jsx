@@ -13,7 +13,7 @@ import {
   AvatarIsActiveBorder,
   StyledAvatar,
   StyledButton,
-  GroupByBtn,
+  MakeGroupBtn,   // <-- новый стиль
   ClearAll,
 } from './Styles';
 
@@ -24,6 +24,7 @@ const propTypes = {
   mergeFilters: PropTypes.func.isRequired,
   showOnlyDone: PropTypes.bool,
   onClearDoneFilter: PropTypes.func,
+  onMakeGroup: PropTypes.func.isRequired,   // <-- новый пропс
 };
 
 const ProjectBoardFilters = ({
@@ -33,6 +34,7 @@ const ProjectBoardFilters = ({
   mergeFilters,
   showOnlyDone,
   onClearDoneFilter,
+  onMakeGroup,
 }) => {
   const { currentUserId } = useCurrentUser();
   const { t } = useLanguage();
@@ -51,13 +53,13 @@ const ProjectBoardFilters = ({
   return (
     <Filters data-testid="board-filters">
       <LeftFilters>
+        {/* ... всё без изменений ... */}
         <SearchInput
           icon="search"
           value={searchTerm}
           placeholder={t('searchBoard')}
           onChange={value => mergeFilters({ searchTerm: value })}
         />
-
         <Avatars>
           {projectUsers.map(user => (
             <AvatarIsActiveBorder key={user.id} isActive={userIds.includes(user.id)}>
@@ -70,7 +72,6 @@ const ProjectBoardFilters = ({
             </AvatarIsActiveBorder>
           ))}
         </Avatars>
-
         <StyledButton
           variant="empty"
           isActive={myOnly}
@@ -78,7 +79,6 @@ const ProjectBoardFilters = ({
         >
           {t('onlyMyIssues')}
         </StyledButton>
-
         <StyledButton
           variant="empty"
           isActive={recent}
@@ -86,22 +86,14 @@ const ProjectBoardFilters = ({
         >
           {t('recentlyUpdated')}
         </StyledButton>
-
         {showClearAll && (
           <ClearAll onClick={handleClearAll}>{t('clearAll')}</ClearAll>
         )}
       </LeftFilters>
-
-      <RightFilters>
-        <GroupByBtn>
+      <MakeGroupBtn onClick={onMakeGroup} variant="empty">
           <Icon type="issues" size={16} />
-          {t('groupByStatus')}
-        </GroupByBtn>
-        <GroupByBtn>
-          <Icon type="more" size={16} />
-          {t('more')}
-        </GroupByBtn>
-      </RightFilters>
+          {t('Make group')}
+      </MakeGroupBtn>
     </Filters>
   );
 };

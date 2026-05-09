@@ -16,11 +16,6 @@ export const LeftFilters = styled.div`
   gap: 22.5px;           /* 18 * 1.25 */
 `;
 
-export const RightFilters = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 62.5px;           /* 50 * 1.25 */
-`;
 
 export const SearchInput = styled(InputDebounced)`
   width: 250px;          /* 200 * 1.25 */
@@ -107,5 +102,31 @@ export const ClearAll = styled.div`
   ${mixin.clickable}
   &:hover {
     color: ${color.textDark};
+  }
+`;
+
+export const MakeGroupBtn = styled(StyledButton)`
+  font-weight: 500;
+  color: #5E3F3F;
+  border: 1px solid #E0D8D8;
+  padding: 8px 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+
+  /* убираем margin-right, который мешает */
+  > *:first-child {
+    margin-right: 0;
+  }
+
+  /* внутренний div-обёртка (создаётся Button) */
+  > div {
+    display: flex;
+    align-items: center;
+    gap: 8px;           /* отступ между иконкой и текстом */
+  }
+
+  &:hover {
+    background: #F0ECEC;
   }
 `;

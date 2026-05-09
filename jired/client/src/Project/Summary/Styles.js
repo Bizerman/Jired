@@ -163,3 +163,30 @@ export const CreatorName = styled.span`
   font-family: 'Outfit', sans-serif;
   white-space: nowrap;
 `;
+
+export const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+`;
+
+export const StatCard = styled.div`
+  background: #F9F8F8;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+export const StatValue = styled.div`
+  font-size: 32px;
+  font-weight: 600;
+  color: #4a2727;
+`;
+
+export const StatLabel = styled.div`
+  font-size: 14px;
+  color: #866f6f;
+`;
