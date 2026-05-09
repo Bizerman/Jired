@@ -10,7 +10,7 @@
 # production
 **/build
 **/npm-debug.log*
-
+/redmine/storage/postgresql-data
 ИУ5-71б_Утенков_А_П_Задание_ВКРБ.docx
 ИУ5-71б_Утенков_А_П_КП_ВКРБ.docx
 ИУ5-81б_Утенков_А_П_ПМИ.docx
