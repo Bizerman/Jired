@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import styled, { css } from 'styled-components';
@@ -11,7 +11,7 @@ import Issue from './Issue';
 import { List, Title, StatusBadge, IssuesCount, Issues, DragPlaceholder } from './Styles';
 import { useLanguage } from 'context/LanguageContext';
 
-// === СТИЛИ КАРТОЧКИ ГРУППЫ ===
+// === СТИЛИ ===
 const GroupCardContainer = styled.div`
   background: #fff;
   border-radius: 5px;
@@ -19,83 +19,77 @@ const GroupCardContainer = styled.div`
   overflow: hidden;
   border: 1px solid ${color.borderLightest};
   transition: border 0.15s, box-shadow 0.15s;
-  min-height: 86px;
+  display: flex;               /* ← теперь флекс-контейнер */
+  flex-direction: column;      /* ← элементы идут вертикально */
   ${mixin.clickable}
-  &:hover {
-    background: #f9f9f9;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  }
-  ${props =>
-    props.isDragging &&
-    css`
-      transform: rotate(2deg);
-      box-shadow: 0 10px 30px rgba(173, 30, 30, 0.15);
-      border-color: #AD1E1E;
-    `}
+  &:hover { background: #f9f9f9; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  ${props => props.isDragging && css`
+    transform: rotate(2deg);
+    box-shadow: 0 10px 30px rgba(173, 30, 30, 0.15);
+    border-color: #AD1E1E;
+  `}
 `;
+
 const GroupCheckIcon = styled.div`
-  width: 16px;
-  height: 16px;
-  border-radius: 3px;
-  background: #E34A4A;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: white;
-  font-size: 10px;
+  width: 16px; height: 16px; border-radius: 3px; background: #E34A4A;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  color: white; font-size: 10px;
 `;
+
 const GroupHeader = styled.div`
-  display: flex;
-  align-items: center;
-  padding: 12.5px 13.75px;
-  padding-bottom: ${p => p.isExpanded ? '12.5px' : '0'};
-  cursor: pointer;
-  &:active {
-    cursor: grabbing;
-  }
+  display: flex; align-items: center; padding: 12.5px 13.75px;
+  padding-bottom: ${p => p.isExpanded ? '12.5px' : '0'}; cursor: pointer;
+  &:active { cursor: grabbing; }
 `;
 
 const GroupName = styled.p`
   ${font.regular}
-  font-size: 17.5px;
-  color: ${color.textMedium};
-  padding-bottom: 12.5px;
-  text-align: left;
-  line-height: 1.4;
-  margin: 0;
-  flex: 1;
+  font-size: 17.5px; color: ${color.textMedium}; padding-bottom: 12.5px;
+  text-align: left; line-height: 1.4; margin: 0; flex: 1;
 `;
 
 const GroupBottom = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: flex; justify-content: space-between; align-items: center;
   padding: 0 13.75px 12.5px 13.75px;
 `;
 
 const GroupId = styled.div`
   ${font.regular}
-  font-size: 15px;
-  color: ${color.textMedium};
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  font-size: 15px; color: ${color.textMedium}; display: flex; align-items: center; gap: 0.5rem;
 `;
 
 const GroupTaskCount = styled.span`
-  font-size: 15px;
+  font-size: 12px;
+  background: ${color.backgroundLightest};
+  padding: 2px 8px;
+  border-radius: 10px;
   color: ${color.textMedium};
+  font-weight: 500;
+  flex-shrink: 0;
   margin-left: auto;
 `;
 
-// Остальные стили (statusBadgeColors, statusKeyMap и т.д.)
-const statusBadgeColors = {
-  backlog:    { bg: '#e8e1e1', textColor: '#5e3f3f' },
-  inprogress: { bg: '#fde8e8', textColor: '#ad1e1e' },
-  done:       { bg: '#e4fcef', textColor: '#0B875B' },
-};
+const DropZoneIndicator = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #AD1E1E;
+  border-radius: 6px;
+  color: #AD1E1E;
+  font-weight: 500;
+  background-color: #FEF3F3;
+  font-size: 14px;
+  padding: 12.5px 13.75px;      /* ← нужные отступы */
+  box-sizing: border-box;       /* ← чтобы padding не увеличивал общую высоту */
+  overflow: hidden;
+`;
 
+const statusBadgeColors = {
+  backlog: { bg: '#e8e1e1', textColor: '#5e3f3f' },
+  inprogress: { bg: '#fde8e8', textColor: '#ad1e1e' },
+  done: { bg: '#e4fcef', textColor: '#0B875B' },
+};
 const statusKeyMap = { backlog: 'backlog', inprogress: 'inProgress', done: 'done' };
 
 const filterIssues = (projectIssues, filters, currentUserId) => {
@@ -109,19 +103,17 @@ const filterIssues = (projectIssues, filters, currentUserId) => {
   return issues;
 };
 
-const getSortedListIssues = (issues, status) =>
-  issues.filter(issue => issue.statusKey === status);
+const getSortedListIssues = (issues, status) => issues.filter(issue => issue.statusKey === status);
 
 const ProjectBoardList = ({
   status, project, filters, currentUserId, selectedIssueIds,
-  onIssueSelect, hiddenIssueIds, priorities, isDragOver, groups
+  onIssueSelect, hiddenIssueIds, priorities, isDragOver, groups,
+  expandedGroups, toggleGroup
 }) => {
   const { t } = useLanguage();
-  const [expandedGroups, setExpandedGroups] = useState({});
 
   const filteredIssues = filterIssues(project.issues, filters, currentUserId);
-  const allListIssues = getSortedListIssues(filteredIssues, status)
-    .filter(issue => !hiddenIssueIds.has(issue.id));
+  const allListIssues = getSortedListIssues(filteredIssues, status).filter(issue => !hiddenIssueIds.has(issue.id));
   const fullStatusIssues = getSortedListIssues(project.issues, status);
 
   const badgeColors = statusBadgeColors[status] || { bg: '#e8e1e1', textColor: '#725757' };
@@ -132,42 +124,24 @@ const ProjectBoardList = ({
   const countText = totalCount === visibleCount ? totalCount : `${visibleCount} ${t('of')} ${totalCount}`;
 
   const ungroupedIssues = allListIssues.filter(i => !groups?.some(g => g.tasks.includes(i.id)));
-
-  const groupData = (groups || []).map(g => ({
-    ...g,
-    issues: allListIssues.filter(i => g.tasks.includes(i.id))
-  }));
-
+  const groupData = (groups || []).map(g => ({ ...g, issues: allListIssues.filter(i => g.tasks.includes(i.id)) }));
   const visibleGroups = groupData.filter(g => g.issues.length > 0);
-
-  const toggleGroup = (groupId) => {
-    setExpandedGroups(prev => ({ ...prev, [groupId]: !prev[groupId] }));
-  };
 
   return (
     <List isDraggingOver={isDragOver}>
       <Title>
-        <StatusBadge bg={badgeColors.bg} textColor={badgeColors.textColor}>
-          {statusTitle}
-        </StatusBadge>
+        <StatusBadge bg={badgeColors.bg} textColor={badgeColors.textColor}>{statusTitle}</StatusBadge>
         <IssuesCount>{countText}</IssuesCount>
       </Title>
 
-      {/* Зона для свободных задач (без групп) */}
+      {/* Зона для свободных задач */}
       <Droppable droppableId={`${status}::ungrouped`} type="TASK">
         {(provided) => (
           <div ref={provided.innerRef} {...provided.droppableProps}>
             {ungroupedIssues.map((issue, index) => (
-              <Issue
-                key={issue.id}
-                projectUsers={project.users}
-                issue={issue}
-                index={index}
-                isSelected={selectedIssueIds.has(issue.id)}
-                onIssueSelect={onIssueSelect}
-                selectedCount={selectedIssueIds.size}
-                priorities={priorities}
-              />
+              <Issue key={issue.id} projectUsers={project.users} issue={issue} index={index}
+                isSelected={selectedIssueIds.has(issue.id)} onIssueSelect={onIssueSelect}
+                selectedCount={selectedIssueIds.size} priorities={priorities} />
             ))}
             {provided.placeholder}
           </div>
@@ -177,78 +151,98 @@ const ProjectBoardList = ({
       {/* Зона для групп */}
       <Droppable droppableId={`group-zone::${status}`} type="GROUP">
         {(provided) => (
-          <div
-            ref={provided.innerRef}
-            {...provided.droppableProps}
-            style={{ minHeight: '40px' }}
-          >
+          <div ref={provided.innerRef} {...provided.droppableProps} style={{ minHeight: '40px' }}>
             {visibleGroups.map((group, index) => {
-              const isExpanded = expandedGroups[group.id] !== false;
+              const isExpanded = expandedGroups[group.id] === true;
               return (
                 <Draggable key={group.id} draggableId={`group::${status}::${group.id}`} index={index}>
-                  {(provided, snapshot) => (
-                    <GroupCardContainer
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      isDragging={snapshot.isDragging}
-                    >
-                      <div
-                        {...provided.dragHandleProps}
-                        onClick={() => toggleGroup(group.id)}
-                        style={{ display: 'flex', flexDirection: 'column', flex: 1 }}
-                      >
-                        {/* Заголовок группы (всегда показывается) */}
-                        <GroupHeader isExpanded={isExpanded}>
-                          <GroupName>{group.name}</GroupName>
-                        </GroupHeader>
-
-                        {/* Нижняя строка с информацией о группе — только в свёрнутом состоянии */}
-                        {!isExpanded && (
-                          <GroupBottom>
-                            <GroupId>
-                              <GroupCheckIcon>
-                                <Icon type="issues" size={10} color="#fff" style={{ height: '65%' }} />
-                              </GroupCheckIcon>
-                              <span>GROUP-{group.id}</span>
-                            </GroupId>
-                            <GroupTaskCount>
-                              {group.issues.length}
-                            </GroupTaskCount>
-                          </GroupBottom>
-                        )}
+                  {(providedGroup, snapshot) => (
+                    <GroupCardContainer ref={providedGroup.innerRef} {...providedGroup.draggableProps} isDragging={snapshot.isDragging}>
+                      {/* Перетаскиваемая ручка: заголовок + свёрнутая информация */}
+                      <div {...providedGroup.dragHandleProps}>
+                        <div
+                          style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column' }}
+                          onClick={(e) => {
+                            if (snapshot.isDragging || e.defaultPrevented) return;
+                            toggleGroup(group.id);
+                          }}
+                        >
+                          <GroupHeader isExpanded={isExpanded}>
+                            <GroupName>{group.name || 'Untitled Group'}</GroupName>
+                          </GroupHeader>
+                          {!isExpanded && (
+                            <GroupBottom>
+                              <GroupId>
+                                <GroupCheckIcon>
+                                  <Icon type="issues" size={10} color="#fff" style={{ height: '65%' }} />
+                                </GroupCheckIcon>
+                                <span>GROUP-{group.id}</span>
+                              </GroupId>
+                              <GroupTaskCount>{group.issues.length}</GroupTaskCount>
+                            </GroupBottom>
+                          )}
+                        </div>
                       </div>
 
-                      {/* Раскрытая часть с задачами — только в развернутом состоянии */}
-                      {isExpanded && (
-                        <Droppable droppableId={`${status}::${group.id}`} type="TASK">
-                          {(provided, snap) => (
+                      {/* Зона для задач внутри группы */}
+                      <Droppable droppableId={`${status}::${group.id}`} type="TASK">
+                        {(taskProvided, taskSnap) => {
+                          const isDraggingOverTask = taskSnap.isDraggingOver;
+                          return (
                             <div
-                              ref={provided.innerRef}
-                              {...provided.droppableProps}
-                              style={{
-                                minHeight: '20px',
-                                padding: '8px',
-                                background: snap.isDraggingOver ? '#F4F5F7' : 'transparent',
-                                transition: 'background 0.2s ease'
-                              }}
+                              ref={taskProvided.innerRef}
+                              {...taskProvided.droppableProps}
+                              style={{ display: 'flex', flexDirection: 'column' }}
                             >
-                              {group.issues.map((issue, i) => (
-                                <Issue
-                                  key={issue.id}
-                                  projectUsers={project.users}
-                                  issue={issue}
-                                  index={i}
-                                  isSelected={selectedIssueIds.has(issue.id)}
-                                  onIssueSelect={onIssueSelect}
-                                  selectedCount={selectedIssueIds.size}
-                                  priorities={priorities}
-                                />
-                              ))}
-                              {provided.placeholder}
+                              {/* Свёрнутая группа + активное перетаскивание */}
+                              {!isExpanded && isDraggingOverTask ? (
+                                <div style={{
+                                  position: 'relative',
+                                  minHeight: '86px',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  padding: '12.5px 13.75px',   /* ← отступы, как у GroupHeader */
+                                  boxSizing: 'border-box',      /* ← чтобы padding вошёл в min-height */
+                                }}>
+                                  <DropZoneIndicator>Drop to add</DropZoneIndicator>
+                                  <div style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    height: '100%',
+                                    pointerEvents: 'none',
+                                    visibility: 'hidden',
+                                  }}>
+                                    {taskProvided.placeholder}
+                                  </div>
+                                </div>
+                              ) : (
+                                // Развёрнутая группа или нет перетаскивания – как раньше
+                                <>
+                                  {isExpanded && (
+                                    <div style={{ padding: '0 8px 8px 8px' }}>
+                                      {group.issues.map((issue, i) => (
+                                        <Issue
+                                          key={issue.id}
+                                          projectUsers={project.users}
+                                          issue={issue}
+                                          index={i}
+                                          isSelected={selectedIssueIds.has(issue.id)}
+                                          onIssueSelect={onIssueSelect}
+                                          selectedCount={selectedIssueIds.size}
+                                          priorities={priorities}
+                                        />
+                                      ))}
+                                    </div>
+                                  )}
+                                  {taskProvided.placeholder}
+                                </>
+                              )}
                             </div>
-                          )}
-                        </Droppable>
-                      )}
+                          );
+                        }}
+                      </Droppable>
                     </GroupCardContainer>
                   )}
                 </Draggable>

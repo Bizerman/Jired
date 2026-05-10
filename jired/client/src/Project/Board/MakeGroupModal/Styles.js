@@ -89,7 +89,7 @@ export const PriorityIcon = styled.img`
 
 // ----- элементы модального окна (убираем инлайн-стили) -----
 export const ModalWrapper = styled.div`
-  height: 80vh;
+  height: 67vh;
   display: flex;
   flex-direction: column;
 `;

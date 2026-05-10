@@ -18,7 +18,12 @@ const ProjectBoardLists = ({
   const [selectedIssueIds, setSelectedIssueIds] = useState(new Set());
   const [hiddenIssueIds, setHiddenIssueIds] = useState(new Set());
   
-  // Состояния для правильной подсветки
+  // Единое состояние свернутости/развернутости групп (переживает перемещение между статусами)
+  const [expandedGroups, setExpandedGroups] = useState({});
+  const toggleGroup = useCallback((groupId) => {
+    setExpandedGroups(prev => ({ ...prev, [groupId]: !prev[groupId] }));
+  }, []);
+
   const [draggingSourceStatus, setDraggingSourceStatus] = useState(null);
   const [draggedOverStatus, setDraggedOverStatus] = useState(null);
 
@@ -36,7 +41,6 @@ const ProjectBoardLists = ({
     });
   };
 
-  // Получаем статус из составного ID (task-zone::status::group или group-zone::status)
   const getStatusFromDroppableId = (droppableId) => {
     if (!droppableId) return null;
     if (droppableId.startsWith('group-zone::')) return droppableId.split('::')[1];
@@ -57,7 +61,6 @@ const ProjectBoardLists = ({
     }
   }, [selectedIssueIds]);
 
-  // Срабатывает каждый раз, когда мы проводим мышкой над новой зоной
   const handleDragUpdate = useCallback((update) => {
     if (!update.destination) {
       setDraggedOverStatus(null);
@@ -67,7 +70,7 @@ const ProjectBoardLists = ({
   }, []);
 
   const handleDragEnd = useCallback(async (result) => {
-    setDraggedOverStatus(null); // Сбрасываем подсветку
+    setDraggedOverStatus(null);
     setDraggingSourceStatus(null);
     setHiddenIssueIds(new Set());
 
@@ -77,42 +80,85 @@ const ProjectBoardLists = ({
 
     const authToken = getStoredAuthToken();
 
-    // === ЛОГИКА ПЕРЕТАСКИВАНИЯ ГРУППЫ ===
+    // ЛОГИКА ПЕРЕТАСКИВАНИЯ ГРУППЫ
     if (type === 'GROUP') {
       const [_, sourceStatus, groupId] = draggableId.split('::');
       const destStatus = getStatusFromDroppableId(destination.droppableId);
       
-      if (sourceStatus === destStatus) return; // Игнорируем сортировку групп внутри колонки
+            // Перемещение внутри одной колонки (сортировка групп)
+      if (sourceStatus === destStatus) {
+        let updatedGroups = [...(groups || [])];
+        const visibleGroups = updatedGroups.filter(g =>
+          project.issues.some(i => i.statusKey === sourceStatus && g.tasks.includes(i.id))
+        );
+        
+        const movedGroup = visibleGroups[source.index];
+        const targetGroup = visibleGroups[destination.index];
 
+        if (movedGroup && targetGroup) {
+          const globalSourceIdx = updatedGroups.findIndex(g => g.id === movedGroup.id);
+          updatedGroups.splice(globalSourceIdx, 1);
+          
+          const globalDestIdx = updatedGroups.findIndex(g => g.id === targetGroup.id);
+          const insertPos = source.index < destination.index ? globalDestIdx + 1 : globalDestIdx;
+          
+          updatedGroups.splice(insertPos, 0, movedGroup);
+          if (onGroupsChange) onGroupsChange(updatedGroups);
+        }
+        return;
+      }
+
+      // Перемещение группы в другой статус
       const newStatusName = IssueStatusToName[destStatus];
       const newStatusId = project.statuses.find(s => s.name === newStatusName)?.id;
       if (!newStatusId) return;
 
-      let allIssues = [...project.issues];
-      
-      // Находим все задачи этой группы в исходной колонке
-      const groupTasksInSource = allIssues.filter(i => 
-        i.statusKey === sourceStatus && 
+      const allIssues = [...project.issues];
+      const sourceGroupTasks = allIssues.filter(i =>
+        i.statusKey === sourceStatus &&
         groups?.find(g => g.id.toString() === groupId)?.tasks.includes(i.id)
       );
 
-      if (groupTasksInSource.length === 0) return;
-      const idsToUpdate = groupTasksInSource.map(i => i.id);
+      if (sourceGroupTasks.length === 0) return;
+      const idsToUpdate = sourceGroupTasks.map(i => i.id);
 
-      // Оптимистично меняем статусы
-      groupTasksInSource.forEach(issue => {
+      // Оптимистично меняем статусы задач
+      sourceGroupTasks.forEach(issue => {
         issue.statusKey = destStatus;
         issue.status_id = newStatusId;
         issue.updatedAt = new Date().toISOString();
       });
 
-      // Перемещаем в конец списка (при слиянии они сами сгруппируются)
-      allIssues = allIssues.filter(i => !idsToUpdate.includes(i.id));
-      allIssues.push(...groupTasksInSource);
-      
-      if (updateAllIssues) updateAllIssues(allIssues);
+      // Удаляем задачи из текущих позиций
+      let updatedIssues = allIssues.filter(i => !idsToUpdate.includes(i.id));
 
-      // Массовое сохранение на сервере
+      // Вставляем задачи в целевой статус на нужную позицию
+      const destStatusIssues = updatedIssues.filter(i => i.statusKey === destStatus);
+      const insertAtIndex = Math.min(destination.index, destStatusIssues.length);
+      updatedIssues = [
+        ...updatedIssues.filter(i => i.statusKey !== destStatus),
+        ...destStatusIssues.slice(0, insertAtIndex),
+        ...sourceGroupTasks,
+        ...destStatusIssues.slice(insertAtIndex)
+      ];
+
+      if (updateAllIssues) updateAllIssues(updatedIssues);
+
+      // Обновляем порядок групп: удаляем группу из старого массива и вставляем в нужное место
+      const updatedGroups = [...(groups || [])];
+      const movedGroup = updatedGroups.find(g => g.id.toString() === groupId);
+      if (movedGroup) {
+        const filteredGroups = updatedGroups.filter(g => g.id !== movedGroup.id);
+        const destStatusGroups = filteredGroups.filter(g =>
+          project.issues.some(i => i.statusKey === destStatus && g.tasks.includes(i.id))
+        );
+        const insertGroupPos = Math.min(destination.index, destStatusGroups.length);
+        const globalInsertPos = filteredGroups.findIndex(g => g === destStatusGroups[insertGroupPos]) ?? filteredGroups.length;
+        filteredGroups.splice(globalInsertPos, 0, movedGroup);
+        if (onGroupsChange) onGroupsChange(filteredGroups);
+      }
+
+      // Сохраняем изменения на сервере
       if (authToken) {
         try {
           await Promise.all(idsToUpdate.map(id => {
@@ -129,7 +175,7 @@ const ProjectBoardLists = ({
       return;
     }
 
-    // === ЛОГИКА ПЕРЕТАСКИВАНИЯ ЗАДАЧ (ТВОЯ СТАРАЯ ЛОГИКА) ===
+    // ЛОГИКА ПЕРЕТАСКИВАНИЯ ЗАДАЧ
     const issueId = Number(draggableId);
     const sourceStatusKey = getStatusFromDroppableId(source.droppableId);
     const destStatusKey = getStatusFromDroppableId(destination.droppableId);
@@ -139,7 +185,6 @@ const ProjectBoardLists = ({
     const isMulti = selectedIssueIds.size > 0 && selectedIssueIds.has(issueId);
     const movingIds = isMulti ? Array.from(selectedIssueIds) : [issueId];
 
-    // 1. Обновляем принадлежность к группам
     let updatedGroups = groups ? [...groups] : [];
     if (sourceGroupId !== destGroupId) {
       if (sourceGroupId !== 'ungrouped') {
@@ -155,7 +200,6 @@ const ProjectBoardLists = ({
       if (onGroupsChange) onGroupsChange(updatedGroups);
     }
 
-    // 2. Глобальное позиционирование
     let allIssues = [...project.issues];
     const movingIssues = allIssues.filter(i => movingIds.includes(i.id));
     allIssues = allIssues.filter(i => !movingIds.includes(i.id));
@@ -193,7 +237,6 @@ const ProjectBoardLists = ({
     allIssues.splice(insertGlobalIndex, 0, ...movingIssues);
     if (updateAllIssues) updateAllIssues(allIssues);
 
-    // 3. Сохранение на сервере
     if (sourceStatusKey !== destStatusKey && authToken) {
       try {
         await Promise.all(movingIds.map(id => {
@@ -230,7 +273,6 @@ const ProjectBoardLists = ({
     >
       <Lists>
         {Object.values(IssueStatus).map(status => {
-          // Вычисляем, подсвечивать ли колонку (если мы над ней и это не источник)
           const isDragOver = draggedOverStatus === status && draggingSourceStatus !== status;
 
           return (
@@ -244,8 +286,10 @@ const ProjectBoardLists = ({
               onIssueSelect={handleIssueSelect}
               hiddenIssueIds={hiddenIssueIds}
               priorities={priorities}
-              isDragOver={isDragOver} // <-- Передаем состояние
+              isDragOver={isDragOver}
               groups={groups}
+              expandedGroups={expandedGroups}
+              toggleGroup={toggleGroup}
             />
           );
         })}

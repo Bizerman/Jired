@@ -1,0 +1,3 @@
+@"
+AQVN2Ec5CRfs6zOm7GlqJS67vakuyB8OyU1ZOJRf==>***REMOVED***
+"@ | Out-File -FilePath replacements.txt -Encoding UTF8
