@@ -7,7 +7,7 @@ import { updateArrayItemById } from 'shared/utils/javascript';
 import { createQueryParamModalHelpers } from 'shared/utils/queryParamModal';
 import { PageLoader, PageError, Modal } from 'shared/components';
 import api from '../shared/utils/api';
-
+import { useLanguage } from 'context/LanguageContext';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import ProjectToolbar from './Board/Toolbar';
@@ -18,6 +18,8 @@ import IssueCreate from './IssueCreate';
 import ProjectSettings from './ProjectSettings';
 import ProjectSummary from './Summary';
 import ProjectReports from './Reports';
+import ProjectIssues from './ProjectIssues';
+import ProjectAttachments from './ProjectAttachments';
 import ProjectCreate from '../ProjectCreate';
 import { ProjectPage } from './Styles';
 import { IssueStatus } from 'shared/constants/issues';
@@ -26,14 +28,18 @@ const Project = () => {
   const match = useRouteMatch();
   const history = useHistory();
   const location = useLocation();
+  const { t } = useLanguage();
+  const [{ data: currentUserData }] = useApi.get('/users/current.json');
+  const currentUser = currentUserData?.user;
   const searchParams = new URLSearchParams(location.search);
   const newProjectIdParam = searchParams.get('newProjectId');
   const retryTimerRef = useRef(null);
   const retryCountRef = useRef(0);
   const isSummaryPage = location.pathname === `${match.url}/summary`;
+  const isIssuesPage = location.pathname === `${match.url}/issues`;
+  const isAttachmentsPage = location.pathname === `${match.url}/attachments`;
   const issueSearchModalHelpers = createQueryParamModalHelpers('issue-search');
   const issueCreateModalHelpers = createQueryParamModalHelpers('issue-create');
-
   const [projectId, setProjectId] = useState(() => {
     if (newProjectIdParam) {
       const id = parseInt(newProjectIdParam, 10);
@@ -89,12 +95,14 @@ const Project = () => {
           // 2. Загружаем справочник статусов
           const statusesRes = await api.get('/issue_statuses.json');
           const statuses = statusesRes.issue_statuses || [];
-
+          const prioritiesRes = await api.get('/enumerations/issue_priorities.json');
+          const priorities = prioritiesRes.issue_priorities || [];
           // 3. Загружаем задачи проекта
           const issuesRes = await api.get('/issues.json', {
             project_id: projectId,
             limit: 100,
             status_id: '*',
+            include: 'attachments',
           });
           const rawIssues = issuesRes.issues || [];
           console.log('Total issues loaded:', rawIssues.length);
@@ -138,6 +146,7 @@ const Project = () => {
                 ...data.project,
                 issues: mappedIssues,
                 statuses,
+                priorities,
                 users: [],
               },
             });
@@ -403,8 +412,60 @@ const Project = () => {
           </>
         )}
       />
-      {/* Остальные страницы (board, settings и т.д.) */}
-      {!isSummaryPage && (
+      <Route
+        path={`${match.path}/issues`}
+        render={() => (
+          <>
+            {!isCreatePage && (
+              <>
+                <Navbar
+                  issueSearchModalOpen={issueSearchModalHelpers.open}
+                  issueCreateModalOpen={issueCreateModalHelpers.open}
+                  project={project}
+                />
+                <Sidebar project={project} />
+              </>
+            )}
+            <div style={{
+              padding: '67.5px 32px 62.5px 515px',
+              minHeight: '100vh',
+              background: '#fff',
+              fontFamily: "'Outfit', sans-serif",
+            }}>
+              <ProjectBoardHeader project={project} />
+              <ProjectToolbar baseUrl={match.url.replace(/\/board$/, '')} />
+              <ProjectIssues
+                project={project}
+                updateIssue={updateLocalProjectIssues}
+                currentUser={currentUser}
+              />
+            </div>
+          </>
+        )}
+      />
+      <Route
+        path={`${match.path}/attachments`}
+        render={() => (
+          <>
+            {!isCreatePage && (
+              <>
+                <Navbar
+                  issueSearchModalOpen={issueSearchModalHelpers.open}
+                  issueCreateModalOpen={issueCreateModalHelpers.open}
+                  project={project}
+                />
+                <Sidebar project={project} />
+              </>
+            )}
+            <div style={{ padding: '67.5px 32px 62.5px 515px', minHeight: '100vh', background: '#fff', fontFamily: "'Outfit', sans-serif" }}>
+              <ProjectBoardHeader project={project} />
+              <ProjectToolbar baseUrl={match.url.replace(/\/board$/, '')} />
+              <ProjectAttachments project={project} />
+            </div>
+          </>
+        )}
+      />
+      {!isSummaryPage && !isIssuesPage && !isAttachmentsPage && (
         <ProjectPage isCreatePage={isCreatePage}>
           {!isCreatePage && (
             <>

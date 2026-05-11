@@ -1,0 +1,3 @@
+default:
+  attachments_storage: db
+  attachments_storage_path: D:/Учеба/ДИПЛОМ/redmine/files

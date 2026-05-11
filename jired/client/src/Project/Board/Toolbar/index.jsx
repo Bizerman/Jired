@@ -43,14 +43,14 @@ const ProjectToolbar = ({ baseUrl }) => {
           <ItemLabel>{t('board')}</ItemLabel>
         </ToolbarItem>
 
-        <ToolbarItem as="div" onClick={() => alert('Attachments not implemented')}>
+        <ToolbarItem as={NavLink} to={`${baseUrl}/attachments`} activeClassName="active">
           <ItemIcon>
             <Icon type="attach" size={28} />
           </ItemIcon>
           <ItemLabel>{t('attachments')}</ItemLabel>
         </ToolbarItem>
 
-        <ToolbarItem as="div" onClick={() => alert('Issues not implemented')}>
+        <ToolbarItem as={NavLink} to={`${baseUrl}/issues`} activeClassName="active">
           <ItemIcon>
             <Icon type="issues" size={28} />
           </ItemIcon>

@@ -24,6 +24,8 @@ services:
       REDMINE_DB_DATABASE: "redmine"
       REDMINE_SECRET_KEY_BASE: "любая_длинная_строка"
       REDMINE_PLUGINS_MIGRATE: "true"
+      REDMINE_ATTACHMENTS_STORAGE: db
+      REDMINE_LOG_LEVEL: debug
     restart: always
   middleware: 
     build: ./middleware

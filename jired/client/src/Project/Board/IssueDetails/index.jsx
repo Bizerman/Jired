@@ -252,6 +252,7 @@ const ProjectBoardIssueDetails = ({
           onCancel={handleCancel}
           onEnableEditing={() => setIsEditing(true)}
           currentUser={currentUser}
+          onAttachmentUploaded={fetchIssue}
         />
       </Content>
     </>

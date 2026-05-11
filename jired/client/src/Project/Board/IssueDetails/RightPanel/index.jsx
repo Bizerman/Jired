@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
+import axios from 'axios';
 import Icon from 'shared/components/Icon';
 import { Avatar } from 'shared/components';
 import { useLanguage } from 'context/LanguageContext';
+import api from 'shared/utils/api';
+import toast from 'shared/utils/toast';
+import { getStoredAuthToken } from 'shared/utils/authToken';
 import userIconSrc from '../../../../App/assets/imgs/user-icon.svg';
 import {
   RightPanelContainer,
@@ -29,6 +33,7 @@ import {
   PriorityIcon,
 } from './Styles';
 
+// SVG-иконки приоритетов
 const priorityIconMap = {
   'low':       { src: require('../../../../App/assets/imgs/low-priority-icon.svg').default,      size: '1.5rem' },
   'medium':    { src: require('../../../../App/assets/imgs/medium-priority-icon.svg').default,   size: '1rem'   },
@@ -62,12 +67,15 @@ const RightPanel = ({
   onCancel,
   onEnableEditing,
   currentUser,
+  onAttachmentUploaded,   // новый пропс – вызывается после успешной загрузки файла
 }) => {
   const { t } = useLanguage();
   const [collapsed, setCollapsed] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [hideEmpty, setHideEmpty] = useState(false);
   const [selectedAssignee, setSelectedAssignee] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (isEditing) {
@@ -97,6 +105,60 @@ const RightPanel = ({
 
   const effectivePriorityId = pendingChanges.priority_id || issue.priority?.id || issue.priority_id;
   const priorityMeta = getPriorityMeta({ priority: { id: effectivePriorityId } }, priorities);
+
+  const handleAttachClick = () => {
+      if (isEditing) return;                     // в режиме редактирования не прикрепляем
+      fileInputRef.current?.click();
+    };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      // Шаг 1: загружаем файл и получаем токен
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const uploadResponse = await fetch('/redmine/uploads.json', {
+        method: 'POST',
+        headers: {
+          'X-Redmine-API-Key': getStoredAuthToken() || '',
+          // Content-Type автоматически multipart/form-data
+        },
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => ({}));
+        throw new Error(errorData?.errors?.join(', ') || errorData?.error || `Upload failed with status ${uploadResponse.status}`);
+      }
+
+      const data = await uploadResponse.json();
+      const token = data?.upload?.token;
+      if (!token) throw new Error('No upload token');
+
+      // Шаг 2: прикрепляем токен к задаче
+      await api.put(`/issues/${issue.id}.json`, {
+        issue: {
+          uploads: [{ token, filename: file.name, content_type: file.type }],
+        },
+      });
+
+      toast.success(t('fileUploaded'));
+      if (onAttachmentUploaded) onAttachmentUploaded();
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || t('uploadFailed'));
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
 
   const renderUser = (user) => {
     if (!user) {
@@ -137,10 +199,19 @@ const RightPanel = ({
             </StatusDropdown>
           )}
         </div>
-        <AttachButton>
-          <Icon type="attach" size={18} />
-          {t('attach')}
-        </AttachButton>
+        {/* Кнопка Attach с реальной загрузкой */}
+        <label style={{ display: 'inline-flex' }}>
+          <AttachButton type="button" onClick={handleAttachClick} disabled={uploading}>
+            <Icon type="attach" size={18} />
+            {uploading ? t('uploading') : t('attach')}
+          </AttachButton>
+          <input
+            ref={fileInputRef}
+            type="file"
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+          />
+        </label>
       </ActionButtons>
 
       <DetailsCard>
@@ -235,64 +306,65 @@ const RightPanel = ({
                 </DetailValue>
               )}
             </DetailField>
+
             {(!hideEmpty || issue.start_date) && (
-            <DetailField>
-              <DetailLabel>{t('startDateLabel')}</DetailLabel>
-              {isEditing ? (
-                <EditInput
-                  type="date"
-                  value={pendingChanges.start_date || issue.start_date || ''}
-                  onChange={(e) => updatePendingChanges('start_date', e.target.value)}
-                />
-              ) : (
-                <DetailValue>{issue.start_date || t('none')}</DetailValue>
-              )}
-            </DetailField>
+              <DetailField>
+                <DetailLabel>{t('startDateLabel')}</DetailLabel>
+                {isEditing ? (
+                  <EditInput
+                    type="date"
+                    value={pendingChanges.start_date || issue.start_date || ''}
+                    onChange={(e) => updatePendingChanges('start_date', e.target.value)}
+                  />
+                ) : (
+                  <DetailValue>{issue.start_date || t('none')}</DetailValue>
+                )}
+              </DetailField>
             )}
 
             {(!hideEmpty || issue.due_date) && (
-            <DetailField>
-              <DetailLabel>{t('dueDateLabel')}</DetailLabel>
-              {isEditing ? (
-                <EditInput
-                  type="date"
-                  value={pendingChanges.due_date || issue.due_date || ''}
-                  onChange={(e) => updatePendingChanges('due_date', e.target.value)}
-                />
-              ) : (
-                <DetailValue>{issue.due_date || t('none')}</DetailValue>
-              )}
-            </DetailField>
+              <DetailField>
+                <DetailLabel>{t('dueDateLabel')}</DetailLabel>
+                {isEditing ? (
+                  <EditInput
+                    type="date"
+                    value={pendingChanges.due_date || issue.due_date || ''}
+                    onChange={(e) => updatePendingChanges('due_date', e.target.value)}
+                  />
+                ) : (
+                  <DetailValue>{issue.due_date || t('none')}</DetailValue>
+                )}
+              </DetailField>
             )}
 
             {(!hideEmpty || (issue.estimated_hours && issue.estimated_hours > 0)) && (
-            <DetailField>
-              <DetailLabel>{t('timeTracking')}</DetailLabel>
-              {isEditing ? (
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <EditInput
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    placeholder={t('originalEstimate')}
-                    value={pendingChanges.estimated_hours ?? issue.estimated_hours ?? ''}
-                    onChange={(e) => updatePendingChanges('estimated_hours', Number(e.target.value))}
-                    style={{ width: 80 }}
-                  />
-                  <EditInput
-                    type="number"
-                    min="0"
-                    max="100"
-                    placeholder="%"
-                    value={pendingChanges.done_ratio ?? issue.done_ratio ?? ''}
-                    onChange={(e) => updatePendingChanges('done_ratio', Number(e.target.value))}
-                    style={{ width: 60 }}
-                  />
-                </div>
-              ) : (
-                <DetailValue>{timeTrackingStr}</DetailValue>
-              )}
-            </DetailField>
+              <DetailField>
+                <DetailLabel>{t('timeTracking')}</DetailLabel>
+                {isEditing ? (
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <EditInput
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      placeholder={t('originalEstimate')}
+                      value={pendingChanges.estimated_hours ?? issue.estimated_hours ?? ''}
+                      onChange={(e) => updatePendingChanges('estimated_hours', Number(e.target.value))}
+                      style={{ width: 80 }}
+                    />
+                    <EditInput
+                      type="number"
+                      min="0"
+                      max="100"
+                      placeholder="%"
+                      value={pendingChanges.done_ratio ?? issue.done_ratio ?? ''}
+                      onChange={(e) => updatePendingChanges('done_ratio', Number(e.target.value))}
+                      style={{ width: 60 }}
+                    />
+                  </div>
+                ) : (
+                  <DetailValue>{timeTrackingStr}</DetailValue>
+                )}
+              </DetailField>
             )}
 
             {!isEditing && (
