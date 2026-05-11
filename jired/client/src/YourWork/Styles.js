@@ -367,17 +367,19 @@ export const TaskListItem = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #fff;
+  background: #F9F8F8;
+  border-radius: 12px;
   cursor: pointer;
-  transition: box-shadow 0.1s;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
+  padding: 16px 20px;
+  transition: background 0.15s;
   &:hover {
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    background: #F0ECEC;
   }
 `;
 
 export const TaskItemTitle = styled.div`
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
   color: #4a2727;
   font-family: 'Outfit', sans-serif;

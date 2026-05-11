@@ -148,3 +148,37 @@ export const ErrorMsg = styled.div`
   padding: 40px;
   color: #ff4d4f;
 `;
+export const GroupCardCreate = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 2px dashed ${color.borderLightest};
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 60px;
+  margin-bottom: 12px;
+  color: ${color.textMedium};
+  font-weight: 500;
+  &:hover {
+    border-color: #AD1E1E;
+    background: rgba(173, 30, 30, 0.03);
+    color: #AD1E1E;
+  }
+`;
+
+export const GroupTitleInput = styled.input`
+  font-size: 1.1rem;
+  font-weight: 400;
+  color: #4a2727;
+  padding: 7px 8px;
+  border-radius: 4px;
+  width: 100%;
+  outline: none;
+  box-sizing: border-box;
+  font-family: 'Outfit', sans-serif;
+  line-height: 1.3;
+  margin-bottom: 12px;
+`;

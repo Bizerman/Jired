@@ -203,7 +203,8 @@ export const DropdownMenu = styled.ul`
   border: 1px solid ${color.borderLight || '#e0e0e0'};
   border-radius: 5px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  min-width: 180px;
+  min-width: auto;
+  width: max-content;
   padding: 4px 0;
   z-index: 1000;
   list-style: none;
@@ -217,8 +218,9 @@ export const DropdownItem = styled.li`
   font-size: 17.5px;
   color: ${color.textMedium};
   ${mixin.clickable}
-  max-width: 320px;          /* ограничение ширины всего пункта */
-
+  max-width: 320px;
+  width: 100%;
+  justify-content: space-between;
   &:hover {
     background: ${color.backgroundLight};
   }

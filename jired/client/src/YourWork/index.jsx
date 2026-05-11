@@ -174,7 +174,7 @@ const YourWork = () => {
                 <TaskInfo>
                   <TaskItemTitle>{title}</TaskItemTitle>
                   <TaskItemMeta>
-                    LP-{issueId} · {projectName}
+                    ISSUE-{issueId} · {projectName}
                   </TaskItemMeta>
                 </TaskInfo>
               </TaskLeft>
@@ -295,10 +295,12 @@ const YourWork = () => {
         </ProjectGrid>
 
         <TaskTabs>
-          <Tab active={activeTab === 'worked-on'} onClick={() => history.push('/your-work?tab=worked-on')}>{t('workedOn')}</Tab>
-          <Tab active={activeTab === 'viewed'} onClick={() => history.push('/your-work?tab=viewed')}>{t('viewed')}</Tab>
-          <Tab active={activeTab === 'assigned-to-me'} onClick={() => history.push('/your-work?tab=assigned-to-me')}>{t('assignedToMe')}</Tab>
-          <Tab active={activeTab === 'starred'} onClick={() => history.push('/your-work?tab=starred')}>{t('starred')}</Tab>
+          <Tab active={activeTab === 'worked-on'} onClick={() => history.push('/your-work?tab=worked-on')}>
+            {t('workedOn')}
+          </Tab>
+          <Tab active={activeTab === 'assigned-to-me'} onClick={() => history.push('/your-work?tab=assigned-to-me')}>
+            {t('assignedToMe')}
+          </Tab>
         </TaskTabs>
 
         {isTasksLoading ? (
@@ -323,9 +325,6 @@ const YourWork = () => {
                 <TaskList issues={myOpenIssues} />
               </div>
             )}
-
-            {activeTab === 'viewed' && <SectionTitle>{t('viewedComingSoon')}</SectionTitle>}
-            {activeTab === 'starred' && <SectionTitle>{t('starredComingSoon')}</SectionTitle>}
           </>
         )}
       </PageWrapper>

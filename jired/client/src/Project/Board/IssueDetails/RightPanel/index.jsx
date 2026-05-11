@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import axios from 'axios';
 import Icon from 'shared/components/Icon';
 import { Avatar } from 'shared/components';
 import { useLanguage } from 'context/LanguageContext';
@@ -67,9 +66,27 @@ const RightPanel = ({
   onCancel,
   onEnableEditing,
   currentUser,
-  onAttachmentUploaded,   // новый пропс – вызывается после успешной загрузки файла
+  onAttachmentUploaded,
 }) => {
   const { t } = useLanguage();
+
+  // маппинг названий приоритетов на ключи перевода
+  const priorityNameToKey = {
+    'Low': 'priorityLow',
+    'Medium': 'priorityMedium',
+    'Normal': 'priorityMedium',
+    'High': 'priorityHigh',
+    'Critical': 'priorityCritical',
+    'Urgent': 'priorityCritical',
+  };
+
+  // маппинг названий статусов на ключи перевода
+  const statusNameToKey = {
+    'Backlog': 'backlog',
+    'In Progress': 'inProgress',
+    'Done': 'done',
+  };
+
   const [collapsed, setCollapsed] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [hideEmpty, setHideEmpty] = useState(false);
@@ -87,9 +104,18 @@ const RightPanel = ({
   const createdFromNow = moment(issue.created_on).fromNow();
   const updatedFromNow = moment(issue.updated_on).fromNow();
 
+  // Вычисление локализованного названия приоритета
   const priorityId = pendingChanges.priority_id || issue.priority?.id;
-  const priorityName = priorities.find(p => p.id === priorityId)?.name || '—';
-  const currentStatusName = statuses.find(s => s.id === (pendingChanges.status_id || issue.status?.id))?.name || t('status');
+  const rawPriorityName = priorities.find(p => p.id === priorityId)?.name || '—';
+  const priorityKey = priorityNameToKey[rawPriorityName];
+  const priorityName = priorityKey ? t(priorityKey) : rawPriorityName;
+
+  // Вычисление локализованного названия статуса
+  const statusId = pendingChanges.status_id || issue.status?.id;
+  const rawStatusName = statuses.find(s => s.id === statusId)?.name || '';
+  const statusKey = statusNameToKey[rawStatusName] || 'status';
+  const currentStatusName = t(statusKey) || rawStatusName;
+
   const effectiveAssigneeId = isEditing
     ? (pendingChanges.assigned_to_id !== undefined ? pendingChanges.assigned_to_id : issue.assigned_to?.id)
     : (issue.assigned_to?.id);
@@ -107,9 +133,9 @@ const RightPanel = ({
   const priorityMeta = getPriorityMeta({ priority: { id: effectivePriorityId } }, priorities);
 
   const handleAttachClick = () => {
-      if (isEditing) return;                     // в режиме редактирования не прикрепляем
-      fileInputRef.current?.click();
-    };
+    if (isEditing) return;
+    fileInputRef.current?.click();
+  };
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
@@ -117,7 +143,6 @@ const RightPanel = ({
 
     setUploading(true);
     try {
-      // Шаг 1: загружаем файл и получаем токен
       const formData = new FormData();
       formData.append('file', file);
 
@@ -125,7 +150,6 @@ const RightPanel = ({
         method: 'POST',
         headers: {
           'X-Redmine-API-Key': getStoredAuthToken() || '',
-          // Content-Type автоматически multipart/form-data
         },
         body: formData,
       });
@@ -139,7 +163,6 @@ const RightPanel = ({
       const token = data?.upload?.token;
       if (!token) throw new Error('No upload token');
 
-      // Шаг 2: прикрепляем токен к задаче
       await api.put(`/issues/${issue.id}.json`, {
         issue: {
           uploads: [{ token, filename: file.name, content_type: file.type }],
@@ -158,7 +181,6 @@ const RightPanel = ({
       }
     }
   };
-
 
   const renderUser = (user) => {
     if (!user) {
@@ -185,21 +207,25 @@ const RightPanel = ({
           </StatusButton>
           {isEditing && statusDropdownOpen && (
             <StatusDropdown>
-              {statuses.map(status => (
-                <StatusDropdownItem
-                  key={status.id}
-                  onClick={() => {
-                    updatePendingChanges('status_id', status.id);
-                    setStatusDropdownOpen(false);
-                  }}
-                >
-                  {status.name}
-                </StatusDropdownItem>
-              ))}
+              {statuses.map(status => {
+                const key = statusNameToKey[status.name] || status.name;
+                return (
+                  <StatusDropdownItem
+                    key={status.id}
+                    onClick={() => {
+                      updatePendingChanges('status_id', status.id);
+                      setStatusDropdownOpen(false);
+                    }}
+                  >
+                    {t(key) || status.name}
+                  </StatusDropdownItem>
+                );
+              })}
             </StatusDropdown>
           )}
         </div>
-        {/* Кнопка Attach с реальной загрузкой */}
+
+        {/* Кнопка Attach (ховер добавлен в Styles.js) */}
         <label style={{ display: 'inline-flex' }}>
           <AttachButton type="button" onClick={handleAttachClick} disabled={uploading}>
             <Icon type="attach" size={18} />
@@ -288,9 +314,14 @@ const RightPanel = ({
                     value={pendingChanges.priority_id || issue.priority?.id || ''}
                     onChange={(e) => updatePendingChanges('priority_id', Number(e.target.value))}
                   >
-                    {priorities.map(p => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
+                    {priorities.map(p => {
+                      const key = priorityNameToKey[p.name];
+                      return (
+                        <option key={p.id} value={p.id}>
+                          {key ? t(key) : p.name}
+                        </option>
+                      );
+                    })}
                   </EditSelect>
                 </div>
               ) : (

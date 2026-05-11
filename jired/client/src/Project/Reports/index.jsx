@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import PropTypes from 'prop-types';
 import moment from 'moment';
+import { useLanguage } from 'context/LanguageContext';
 import {
   ReportsPage,
   SectionTitle,
@@ -20,10 +20,10 @@ import {
 } from './Styles';
 
 const ProjectReports = ({ project }) => {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('gantt');
   const issues = project.issues || [];
 
-  // Статистика для столбчатой диаграммы и burndown
   const stats = useMemo(() => {
     const total = issues.length;
     const closed = issues.filter(i => i.status?.is_closed || i.statusKey === 'done').length;
@@ -32,7 +32,6 @@ const ProjectReports = ({ project }) => {
     return { total, closed, inProgress, backlog };
   }, [issues]);
 
-  // Данные для диаграммы Ганта
   const ganttData = useMemo(() => {
     const validIssues = issues
       .map(i => ({
@@ -56,7 +55,6 @@ const ProjectReports = ({ project }) => {
     };
   }, [issues]);
 
-  // Данные для burndown
   const burndownData = useMemo(() => {
     if (issues.length === 0) return null;
 
@@ -73,13 +71,11 @@ const ProjectReports = ({ project }) => {
       minDate.clone().add(i, 'days').format('D MMM'),
     );
 
-    // Идеальная линия
     const ideal = days.map((_, idx) => {
       const fraction = idx / (daysCount - 1 || 1);
       return Math.round(issues.length * (1 - fraction));
     });
 
-    // Фактическая линия
     const actual = days.map((_, idx) => {
       const day = minDate.clone().add(idx, 'days');
       return issues.filter(issue => {
@@ -94,26 +90,26 @@ const ProjectReports = ({ project }) => {
     return { days, ideal, actual };
   }, [issues]);
 
-  // Рендер диаграммы Ганта
   const renderGantt = () => {
     if (!ganttData) {
-      return <EmptyState>Недостаточно дат (Start Date / Due Date) для построения диаграммы Ганта.</EmptyState>;
+      return <EmptyState>{t('ganttNoData')}</EmptyState>;
     }
 
     return (
       <ChartContainer>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontSize: '12px', color: '#866f6f', paddingLeft: '200px' }}>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontSize: '12px',
+          color: '#866f6f', paddingLeft: '200px'
+        }}>
           <span>{ganttData.minDate.format('DD.MM.YYYY')}</span>
           <span>{ganttData.maxDate.format('DD.MM.YYYY')}</span>
         </div>
         {ganttData.items.map(issue => {
           const leftOffset = Math.max(
-            (issue.start.diff(ganttData.minDate, 'hours') / ganttData.totalDuration) * 100,
-            0,
+            (issue.start.diff(ganttData.minDate, 'hours') / ganttData.totalDuration) * 100, 0
           );
           const durationWidth = Math.max(
-            (issue.end.diff(issue.start, 'hours') / ganttData.totalDuration) * 100,
-            1,
+            (issue.end.diff(issue.start, 'hours') / ganttData.totalDuration) * 100, 1
           );
 
           return (
@@ -133,10 +129,9 @@ const ProjectReports = ({ project }) => {
     );
   };
 
-  // Рендер столбчатой диаграммы по статусам
   const renderStatusChart = () => {
     if (stats.total === 0) {
-      return <EmptyState>Нет задач для отображения статистики.</EmptyState>;
+      return <EmptyState>{t('statusChartEmpty')}</EmptyState>;
     }
 
     const maxVal = Math.max(stats.backlog, stats.inProgress, stats.closed) || 1;
@@ -148,29 +143,28 @@ const ProjectReports = ({ project }) => {
             <BarFill height={(stats.backlog / maxVal) * 100} color="#866f6f">
               {stats.backlog}
             </BarFill>
-            <BarLabel>Backlog</BarLabel>
+            <BarLabel>{t('backlog')}</BarLabel>
           </BarColumn>
           <BarColumn>
             <BarFill height={(stats.inProgress / maxVal) * 100} color="#D29922">
               {stats.inProgress}
             </BarFill>
-            <BarLabel>In Progress</BarLabel>
+            <BarLabel>{t('inProgress')}</BarLabel>
           </BarColumn>
           <BarColumn>
             <BarFill height={(stats.closed / maxVal) * 100} color="#238636">
               {stats.closed}
             </BarFill>
-            <BarLabel>Done</BarLabel>
+            <BarLabel>{t('done')}</BarLabel>
           </BarColumn>
         </BarChartWrapper>
       </ChartContainer>
     );
   };
 
-  // Рендер графика сгорания (burndown) в фиксированной карточке
   const renderBurndown = () => {
     if (!burndownData || issues.length === 0) {
-      return <EmptyState>Нет данных для построения графика сгорания.</EmptyState>;
+      return <EmptyState>{t('burndownEmpty')}</EmptyState>;
     }
 
     const { days, ideal, actual } = burndownData;
@@ -180,30 +174,24 @@ const ProjectReports = ({ project }) => {
 
     return (
       <BurndownContainer>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, color: '#725757', fontSize: 13 }}>
-          <span>Tasks remaining</span>
-          <span>{actual[actual.length - 1]} of {maxTasks}</span>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', marginBottom: 8,
+          color: '#725757', fontSize: 13
+        }}>
+          <span>{t('tasksRemaining')}</span>
+          <span>{t('xOfY', { done: actual[actual.length - 1], total: maxTasks })}</span>
         </div>
         <svg
           viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
           preserveAspectRatio="xMidYMid meet"
           style={{ width: '100%', height: 'calc(100% - 24px)' }}
         >
-          {/* Подписи дней (только первый и последний) */}
           <text x="10" y={CHART_HEIGHT - 5} fontSize="9" fill="#866f6f">
             {days[0]}
           </text>
-          <text
-            x={CHART_WIDTH - 10}
-            y={CHART_HEIGHT - 5}
-            fontSize="9"
-            fill="#866f6f"
-            textAnchor="end"
-          >
+          <text x={CHART_WIDTH - 10} y={CHART_HEIGHT - 5} fontSize="9" fill="#866f6f" textAnchor="end">
             {days[days.length - 1]}
           </text>
-
-          {/* Идеальная линия */}
           <polyline
             fill="none"
             stroke="#ccc"
@@ -211,19 +199,15 @@ const ProjectReports = ({ project }) => {
             strokeDasharray="5,5"
             points={`10,${CHART_HEIGHT - 10} ${CHART_WIDTH - 10},10`}
           />
-
-          {/* Фактическая линия */}
           <polyline
             fill="none"
             stroke="#5E3F3F"
             strokeWidth="3"
-            points={actual
-              .map((v, i) => {
-                const x = 10 + (i / (actual.length - 1)) * (CHART_WIDTH - 20);
-                const y = v === 0 ? 10 : 10 + (1 - v / maxTasks) * (CHART_HEIGHT - 20);
-                return `${x},${y}`;
-              })
-              .join(' ')}
+            points={actual.map((v, i) => {
+              const x = 10 + (i / (actual.length - 1)) * (CHART_WIDTH - 20);
+              const y = v === 0 ? 10 : 10 + (1 - v / maxTasks) * (CHART_HEIGHT - 20);
+              return `${x},${y}`;
+            }).join(' ')}
           />
         </svg>
       </BurndownContainer>
@@ -232,16 +216,16 @@ const ProjectReports = ({ project }) => {
 
   return (
     <ReportsPage>
-      <SectionTitle>Visualizations</SectionTitle>
+      <SectionTitle>{t('reports')}</SectionTitle>
       <TabsContainer>
         <TabButton active={activeTab === 'gantt'} onClick={() => setActiveTab('gantt')}>
-          Диаграмма Ганта
+          {t('gantt')}
         </TabButton>
         <TabButton active={activeTab === 'status'} onClick={() => setActiveTab('status')}>
-          Статусы задач
+          {t('statusChart')}
         </TabButton>
         <TabButton active={activeTab === 'burndown'} onClick={() => setActiveTab('burndown')}>
-          График сгорания
+          {t('burndown')}
         </TabButton>
       </TabsContainer>
 

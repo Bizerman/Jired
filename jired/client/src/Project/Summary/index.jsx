@@ -2,13 +2,15 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { useHistory } from 'react-router-dom';
 import moment from 'moment';
-import { Avatar } from 'shared/components';   // ← добавлен импорт
+import { Avatar } from 'shared/components';
+import { useLanguage } from 'context/LanguageContext'; // ← добавляем
 import {
   SummaryPage,
-  WorkHeader,
-  Title,
-  Divider,
   SectionTitle,
+  StatsGrid,
+  StatCard,
+  StatValue,
+  StatLabel,
   MetaList,
   MetaRow,
   MetaLabel,
@@ -26,89 +28,93 @@ import {
   TaskInfo,
   TaskRight,
   CreatorName,
-  StatsGrid,      
-  StatCard,
-  StatValue,
-  StatLabel, 
-} from './Styles';   // AvatarPic больше не импортируется
+} from './Styles';
 
 const ProjectSummary = ({ project }) => {
   const history = useHistory();
+  const { t } = useLanguage(); // ← хук перевода
   const issues = project.issues || [];
-  const openIssues = issues.filter(i => !i.status?.is_closed && i.statusKey !== 'done');
-  const closedIssues = issues.filter(i => i.status?.is_closed);
   const total = issues.length;
-  const progress = total > 0 ? Math.round((closedIssues.length / total) * 100) : 0;
-  const inProgressIssues = issues.filter(i => i.statusKey === 'inprogress');
   const backlogIssues = issues.filter(i => i.statusKey === 'backlog');
+  const inProgressIssues = issues.filter(i => i.statusKey === 'inprogress');
   const doneIssues = issues.filter(i => i.status?.is_closed || i.statusKey === 'done');
-
+  const openIssues = issues.filter(i => !i.status?.is_closed && i.statusKey !== 'done');
+  const progress = total > 0 ? Math.round((doneIssues.length / total) * 100) : 0;
 
   return (
     <SummaryPage>
-      <SectionTitle>Task Statistics</SectionTitle>
+      {/* Статистика задач */}
+      <SectionTitle>{t('taskStatistics')}</SectionTitle>
       <StatsGrid>
         <StatCard>
-          <StatLabel>Total Tasks</StatLabel>
+          <StatLabel>{t('totalTasks')}</StatLabel>
           <StatValue>{total}</StatValue>
         </StatCard>
         <StatCard>
-          <StatLabel>Backlog</StatLabel>
+          <StatLabel>{t('backlog')}</StatLabel>
           <StatValue>{backlogIssues.length}</StatValue>
         </StatCard>
         <StatCard>
-          <StatLabel>In Progress</StatLabel>
+          <StatLabel>{t('inProgress')}</StatLabel>
           <StatValue>{inProgressIssues.length}</StatValue>
         </StatCard>
         <StatCard>
-          <StatLabel>Done</StatLabel>
+          <StatLabel>{t('done')}</StatLabel>
           <StatValue>{doneIssues.length}</StatValue>
         </StatCard>
       </StatsGrid>
-      <SectionTitle>Project Details</SectionTitle>
+
+      {/* Детали проекта */}
+      <SectionTitle>{t('projectDetails')}</SectionTitle>
       <MetaList>
         <MetaRow>
-          <MetaLabel>Identifier</MetaLabel>
+          <MetaLabel>{t('identifier')}</MetaLabel>
           <MetaValue>{project.identifier}</MetaValue>
         </MetaRow>
         <MetaRow>
-          <MetaLabel>Created</MetaLabel>
+          <MetaLabel>{t('created')}</MetaLabel>
           <MetaValue>{moment(project.created_on).format('LL')}</MetaValue>
         </MetaRow>
         <MetaRow>
-          <MetaLabel>Last updated</MetaLabel>
+          <MetaLabel>{t('lastUpdated')}</MetaLabel>
           <MetaValue>{moment(project.updated_on).format('LL')}</MetaValue>
         </MetaRow>
         <MetaRow>
-          <MetaLabel>Visibility</MetaLabel>
-          <MetaValue>{project.is_public ? 'Public' : 'Private'}</MetaValue>
+          <MetaLabel>{t('visibility')}</MetaLabel>
+          <MetaValue>{project.is_public ? t('public') : t('private')}</MetaValue>
         </MetaRow>
       </MetaList>
-      <SectionTitle style={{ marginTop: 32 }}>Progress</SectionTitle>
+
+      {/* Прогресс */}
+      <SectionTitle style={{ marginTop: 32 }}>{t('progress')}</SectionTitle>
       <div>
-        <span style={{ fontSize: 14, color: '#725757' }}>All tasks: {total}</span>
+        <span style={{ fontSize: 14, color: '#725757' }}>
+          {t('allTasks')}: {total}
+        </span>
         <ProgressBar>
           <ProgressFill width={progress} />
         </ProgressBar>
         <CardFooter>
-          <FooterText>{closedIssues.length} of {total} completed</FooterText>
+          <FooterText>{t('completedText', { closed: doneIssues.length, total })}</FooterText>
         </CardFooter>
       </div>
 
-      {openIssues.length > 0 && (
-        <>
-          <SectionTitle style={{ marginTop: 32 }}>Open Tasks</SectionTitle>
-          <TaskListContainer>
-            {openIssues.slice(0, 5).map(issue => {
+      {/* Открытые задачи */}
+      {/* Открытые задачи */}
+{openIssues.length > 0 && (
+  <>
+    <SectionTitle style={{ marginTop: 32 }}>{t('openTasks')}</SectionTitle>
+    <TaskListContainer>
+      {openIssues.slice(0, 5).map(issue => {
               const creator = issue.author;
-              const creatorName = creator?.name || 'Unknown';
+              const creatorName = creator?.name || t('unknown');
               const creatorAvatar = creator?.avatarUrl;
-              const projectName = project.name || 'Unknown project';
-              const issueId = issue.id;
-              const title = issue.subject;
-
+              const projectName = project.name || t('unknownProject');
               return (
-                <TaskListItem key={issue.id} onClick={() => history.push(`/project/board/issues/${issue.id}`)}>
+                <TaskListItem
+                  key={issue.id}
+                  onClick={() => history.push(`/project/board/issues/${issue.id}`)}
+                >
                   <TaskLeft>
                     <TaskIconBox>
                       <svg width="23" height="23" viewBox="0 0 23 23" fill="none">
@@ -117,9 +123,9 @@ const ProjectSummary = ({ project }) => {
                       </svg>
                     </TaskIconBox>
                     <TaskInfo>
-                      <TaskItemTitle>{title}</TaskItemTitle>
+                      <TaskItemTitle>{issue.subject}</TaskItemTitle>
                       <TaskItemMeta>
-                        LP-{issueId} · {projectName}
+                        ISSUE-{issue.id} · {projectName}
                       </TaskItemMeta>
                     </TaskInfo>
                   </TaskLeft>
@@ -130,6 +136,24 @@ const ProjectSummary = ({ project }) => {
                 </TaskListItem>
               );
             })}
+            {openIssues.length > 5 && (
+              <div style={{ textAlign: 'center', marginTop: '8px' }}>
+                <button
+                  onClick={() => history.push(`/project/issues`)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#AD1E1E',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    fontFamily: 'Outfit, sans-serif',
+                  }}
+                >
+                  {t('more') || 'More'} ({openIssues.length - 5} {t('moreRemaining') || 'remaining'})
+                </button>
+              </div>
+            )}
           </TaskListContainer>
         </>
       )}

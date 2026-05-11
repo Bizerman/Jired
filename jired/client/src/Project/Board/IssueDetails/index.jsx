@@ -19,6 +19,7 @@ const ProjectBoardIssueDetails = ({
   fetchProject,
   updateLocalProjectIssues,
   modalClose,
+  onAttachmentUploaded,
 }) => {
   const [issue, setIssue] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -252,7 +253,7 @@ const ProjectBoardIssueDetails = ({
           onCancel={handleCancel}
           onEnableEditing={() => setIsEditing(true)}
           currentUser={currentUser}
-          onAttachmentUploaded={fetchIssue}
+          onAttachmentUploaded={onAttachmentUploaded || fetchIssue}
         />
       </Content>
     </>

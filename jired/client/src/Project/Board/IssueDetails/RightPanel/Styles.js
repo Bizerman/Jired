@@ -29,6 +29,11 @@ export const AttachButton = styled.button`
   font-weight: 500;
   color: #5e3f3f;
   cursor: pointer;
+  height: 38px;
+  transition: background 0.1s;
+  &:hover {
+    background: #dcd5d5;
+  }
   img {
     width: 18px;
   }
@@ -141,10 +146,9 @@ export const StatusButton = styled.button`
   font-weight: 500;
   color: #5e3f3f;
   cursor: pointer;
+  height: 38px;
   transition: background 0.1s;
-  &:hover {
-    background: #dcd5d5;
-  }
+  &:hover { background: #dcd5d5; }
 `;
 
 export const StatusDropdown = styled.div`

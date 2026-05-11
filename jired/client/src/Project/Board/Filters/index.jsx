@@ -92,7 +92,7 @@ const ProjectBoardFilters = ({
       </LeftFilters>
       <MakeGroupBtn onClick={onMakeGroup} variant="empty">
           <Icon type="issues" size={16} />
-          {t('Make groups')}
+          {t('makeGroups')}
       </MakeGroupBtn>
     </Filters>
   );

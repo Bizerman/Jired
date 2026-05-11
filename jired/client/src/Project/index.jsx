@@ -438,6 +438,7 @@ const Project = () => {
                 project={project}
                 updateIssue={updateLocalProjectIssues}
                 currentUser={currentUser}
+                fetchProject={fetchProject}
               />
             </div>
           </>
@@ -460,7 +461,10 @@ const Project = () => {
             <div style={{ padding: '67.5px 32px 62.5px 515px', minHeight: '100vh', background: '#fff', fontFamily: "'Outfit', sans-serif" }}>
               <ProjectBoardHeader project={project} />
               <ProjectToolbar baseUrl={match.url.replace(/\/board$/, '')} />
-              <ProjectAttachments project={project} />
+              <ProjectAttachments
+                project={project}
+                fetchProject={() => fetchProject(`/projects/${project.id}.json?include=issues`)}
+              />
             </div>
           </>
         )}

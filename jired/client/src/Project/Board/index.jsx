@@ -112,7 +112,7 @@ const ProjectBoard = ({ project, fetchProject, updateLocalProjectIssues, moveIss
               <IssueDetails
                 issueId={routeProps.match.params.issueId}
                 projectUsers={project.users}
-                fetchProject={fetchProject}
+                fetchProject={() => fetchProject(`/projects/${project.id}.json?include=issues`)}
                 updateLocalProjectIssues={updateLocalProjectIssues}
                 modalClose={modal.close}
               />

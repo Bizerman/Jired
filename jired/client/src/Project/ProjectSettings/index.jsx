@@ -183,7 +183,13 @@ const ProjectSettings = ({ project, fetchProject }) => {
         {(formik) => (
           <FormCont>
             <FormElement>
-              <Breadcrumbs items={['Projects', project.name, t('projectDetails')]} />
+              <Breadcrumbs
+                items={[
+                  { label: t('projects'), to: '/projects' },
+                  { label: project.name, to: '/project/board' },
+                  t('projectDetails')
+                ]}
+              />
               <FormHeading>{t('projectDetails')}</FormHeading>
 
               <RequiredNote>
