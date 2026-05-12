@@ -1,18 +1,19 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useHistory } from 'react-router-dom';
-import { useFormikContext, Field } from 'formik';
 
 import toast from 'shared/utils/toast';
 import useApi from 'shared/hooks/api';
 import api from 'shared/utils/api';
-import { Form } from 'shared/components';
+import { Form, Icon } from 'shared/components';
 import { color } from 'shared/utils/styles';
-import { Icon } from 'shared/components';
 import { useLanguage } from 'context/LanguageContext';
-import bgImage from 'App/assets/imgs/project-creation.svg';
-import bgImageBoard from 'App/assets/imgs/project-creation-board.svg';
+
 import defaultProjectIcon from 'App/assets/imgs/projectdefault.svg';
-import { AccessSelect } from './AccessSelect';
+import bgImage from 'App/assets/imgs/project-creation.svg';
+
+import AccessSelect from './AccessSelect';
+import IdentifierGenerator from './IdentifierGenerator';
+import CheckboxField from 'shared/components/CheckboxField';
 
 import {
   PageWrapper,
@@ -41,46 +42,13 @@ import {
   ColorInputLabel,
   ColorInput,
   ShowMoreBtn,
+  IconTextContainer,
+  IconTextContent,
+  IconTextTitle,
+  IconTextSubtitle,
+  IconActions,
+  BoardImagePreview,
 } from './Styles';
-
-const CheckboxField = ({ name, label }) => {
-  const { values, setFieldValue } = useFormikContext();
-  const checked = values[name];
-  return (
-    <label
-      style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, cursor: 'pointer', userSelect: 'none' }}
-      onClick={() => setFieldValue(name, !checked)}
-    >
-      <span
-        style={{
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          width: 20, height: 20, border: `1px solid ${color.borderLight}`, borderRadius: 3,
-          background: checked ? color.primary : '#fff', color: '#fff',
-          transition: 'background 0.15s', flexShrink: 0, userSelect: 'none',
-        }}
-      >
-        {checked && <span style={{ fontWeight: 'bold', fontSize: 14, lineHeight: 1 }}>✓</span>}
-      </span>
-      <span>{label}</span>
-    </label>
-  );
-};
-
-const IdentifierAutoGenerator = () => {
-  const { values, setFieldValue } = useFormikContext();
-  useEffect(() => {
-    if (values.name && values.name.trim() !== '') {
-      const identifier = values.name
-        .toLowerCase()
-        .replace(/[^a-z0-9-_]/g, '-')
-        .replace(/--+/g, '-')
-        .replace(/^-|-$/g, '')
-        .substring(0, 100);
-      setFieldValue('identifier', identifier, false);
-    }
-  }, [values.name, setFieldValue]);
-  return null;
-};
 
 const ProjectCreate = () => {
   const history = useHistory();
@@ -90,8 +58,8 @@ const ProjectCreate = () => {
   const [icon, setIcon] = useState(null);
   const [iconPreview, setIconPreview] = useState(null);
   const [iconBgColor, setIconBgColor] = useState(color.backgroundMedium);
-  const isMounted = useRef(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const isMounted = useRef(true);
 
   useEffect(() => {
     return () => { isMounted.current = false; };
@@ -111,25 +79,19 @@ const ProjectCreate = () => {
   };
 
   const ensureDefaultStatuses = async () => {
-    const requiredStatuses = [
+    const required = [
       { name: 'Backlog', is_closed: false },
       { name: 'In Progress', is_closed: false },
       { name: 'Done', is_closed: true },
     ];
-
     const { issue_statuses } = await api.get('/issue_statuses.json');
-    const existingNames = (issue_statuses || []).map(s => s.name.toLowerCase());
-
-    for (const { name, is_closed } of requiredStatuses) {
-      if (!existingNames.includes(name.toLowerCase())) {
+    const existing = (issue_statuses || []).map(s => s.name.toLowerCase());
+    for (const status of required) {
+      if (!existing.includes(status.name.toLowerCase())) {
         try {
-          await api.post('/extended_api/issue_statuses.json', {
-            issue_status: { name, is_closed },
-          });
-          toast.success(`Status "${name}" created.`);
-        } catch (error) {
-          console.error(`Failed to create status "${name}":`, error);
-          toast.error(`Could not create status "${name}".`);
+          await api.post('/extended_api/issue_statuses.json', { issue_status: status });
+        } catch (err) {
+          console.error(`Failed to create status "${status.name}"`, err);
         }
       }
     }
@@ -148,13 +110,9 @@ const ProjectCreate = () => {
       };
       const response = await createProject(payload);
       const projectId = response?.project?.id;
-
       if (projectId) {
         await ensureDefaultStatuses();
-
-        if (icon) {
-          localStorage.setItem(`project_icon_${projectId}`, icon);
-        }
+        if (icon) localStorage.setItem(`project_icon_${projectId}`, icon);
         localStorage.setItem(`project_icon_bg_${projectId}`, iconBgColor);
         localStorage.setItem('currentProjectId', projectId);
 
@@ -195,7 +153,7 @@ const ProjectCreate = () => {
       >
         {(formik) => (
           <MainContainer>
-            <IdentifierAutoGenerator />
+            <IdentifierGenerator />
             <LeftPanel>
               <HeaderSection>
                 <Title>{t('createProjectTitle')}</Title>
@@ -212,15 +170,17 @@ const ProjectCreate = () => {
                 <FormFields>
                   <FieldGroup>
                     <FieldLabel><span>{t('name')} </span><Asterisk>*</Asterisk></FieldLabel>
-                    <Field name="name">
-                      {({ field }) => <StyledInput {...field} placeholder={t('namePlaceholder')} />}
-                    </Field>
+                    <Form.Field.Input
+                      name="name"
+                      placeholder={t('namePlaceholder')}
+                      component={StyledInput}
+                    />
                   </FieldGroup>
 
                   <FieldGroup>
                     <FieldLabel>{t('projectIcon')}</FieldLabel>
                     <IconCard>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                      <IconTextContainer>
                         <IconPreview bg={iconBgColor}>
                           <img
                             src={iconPreview || defaultProjectIcon}
@@ -228,23 +188,14 @@ const ProjectCreate = () => {
                             style={{ width: '70%', height: '70%', objectFit: 'contain' }}
                           />
                         </IconPreview>
-                        <div style={{ flex: 1 }}>
-                          <p style={{ margin: 0, fontWeight: 600, color: '#202020', fontSize: '1rem' }}>
-                            {t('chooseIconDesc')}
-                          </p>
-                          <p style={{ margin: '4px 0 0', color: '#7e7e7e', fontSize: '0.875rem' }}>
-                            {t('uploadImageDesc')}
-                          </p>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+                        <IconTextContent>
+                          <IconTextTitle>{t('chooseIconDesc')}</IconTextTitle>
+                          <IconTextSubtitle>{t('uploadImageDesc')}</IconTextSubtitle>
+                        </IconTextContent>
+                      </IconTextContainer>
+                      <IconActions>
                         <UploadLabel>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleIconChange}
-                            style={{ display: 'none' }}
-                          />
+                          <input type="file" accept="image/*" onChange={handleIconChange} hidden />
                           {t('chooseImage')}
                         </UploadLabel>
                         <ColorInputLabel>
@@ -255,7 +206,7 @@ const ProjectCreate = () => {
                           />
                           {t('background')}
                         </ColorInputLabel>
-                      </div>
+                      </IconActions>
                     </IconCard>
                   </FieldGroup>
 
@@ -268,16 +219,20 @@ const ProjectCreate = () => {
                     <>
                       <KeyField>
                         <FieldLabel><span>{t('key')} </span><Asterisk>*</Asterisk></FieldLabel>
-                        <Field name="identifier">
-                          {({ field }) => <KeyInput {...field} placeholder="LP" maxLength={10} readOnly />}
-                        </Field>
+                        <Form.Field.Input
+                          name="identifier"
+                          placeholder={t('keyPlaceholder') || 'LP'}
+                          component={KeyInput}
+                          maxLength={25}
+                        />
                       </KeyField>
 
                       <FieldGroup>
                         <FieldLabel>{t('description')}</FieldLabel>
-                        <Field name="description">
-                          {({ field }) => <StyledInput {...field} placeholder={t('optionalDescription')} />}
-                        </Field>
+                        <Form.Field.TextEditor
+                          name="description"
+                          tip={t('optionalDescription')}
+                        />
                       </FieldGroup>
 
                       <FieldGroup>
@@ -290,26 +245,14 @@ const ProjectCreate = () => {
                   )}
                 </FormFields>
 
-                <SubmitButton
-                  onClick={formik.submitForm}
-                  disabled={formik.isSubmitting || isCreating}
-                >
+                <SubmitButton onClick={formik.submitForm} disabled={formik.isSubmitting || isCreating}>
                   {formik.isSubmitting || isCreating ? t('creating') : t('createProjectBtn')}
                 </SubmitButton>
               </FormSection>
             </LeftPanel>
 
             <RightPanel bg={bgImage}>
-              <div
-                style={{
-                  width: '100%',
-                  height: 0,
-                  paddingBottom: '75%',
-                  background: `url(${bgImageBoard}) center/contain no-repeat`,
-                  pointerEvents: 'none',
-                  userSelect: 'none',
-                }}
-              />
+              <BoardImagePreview />
             </RightPanel>
           </MainContainer>
         )}

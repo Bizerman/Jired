@@ -30,13 +30,16 @@ import {
   SubmitButton,
   Hint,
   CheckingWrapper,
+  LangToggle,
 } from './Styles';
 
-const Authenticate = () => {
+const DEFAULT_REDIRECT = '/your-work';
 
+const Authenticate = () => {
   const history = useHistory();
   const location = useLocation();
   const { t, locale, switchLanguage } = useLanguage();
+
   const [apiKey, setApiKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [checkingExisting, setCheckingExisting] = useState(true);
@@ -44,18 +47,20 @@ const Authenticate = () => {
   useEffect(() => {
     let mounted = true;
     const existingToken = getStoredAuthToken();
+
     if (!existingToken) {
       setCheckingExisting(false);
       return () => { mounted = false; };
     }
 
-    axios.get('/redmine/users/current.json', {
-      headers: { 'X-Redmine-API-Key': existingToken, Accept: 'application/json' },
-    })
-      .then(response => {
+    axios
+      .get('/redmine/users/current.json', {
+        headers: { 'X-Redmine-API-Key': existingToken, Accept: 'application/json' },
+      })
+      .then((response) => {
         if (!mounted) return;
         if (response.data?.user) {
-          history.push(location.state?.from?.pathname || '/your-work');
+          history.push(location.state?.from?.pathname || DEFAULT_REDIRECT);
         } else {
           removeStoredAuthToken();
           setCheckingExisting(false);
@@ -76,6 +81,7 @@ const Authenticate = () => {
       toast.error(t('enterApiKey'));
       return;
     }
+
     setLoading(true);
     try {
       const response = await axios.get('/redmine/users/current.json', {
@@ -91,8 +97,7 @@ const Authenticate = () => {
 
       storeAuthToken(apiKey.trim());
       toast.success(t('loginSuccess'));
-      const from = location.state?.from?.pathname || '/your-work';
-      history.push(from);
+      history.push(location.state?.from?.pathname || DEFAULT_REDIRECT);
     } catch (err) {
       console.error(err);
       removeStoredAuthToken();
@@ -116,23 +121,7 @@ const Authenticate = () => {
 
   return (
     <PageContainer>
-      {/* Кнопка смены языка справа сверху */}
-      <div style={{ position: 'absolute', top: 20, right: 20 }}>
-        <button
-          onClick={toggleLanguage}
-          style={{
-            background: 'none',
-            border: '1px solid #ccc',
-            borderRadius: 4,
-            padding: '4px 12px',
-            cursor: 'pointer',
-            fontSize: 14,
-            color: '#333',
-          }}
-        >
-          {locale.toUpperCase()}
-        </button>
-      </div>
+      <LangToggle onClick={toggleLanguage}>{locale.toUpperCase()}</LangToggle>
 
       <Card>
         <LogoRow>
@@ -175,9 +164,7 @@ const Authenticate = () => {
             <SubmitButton type="submit" disabled={loading || !apiKey.trim()}>
               {loading ? t('verifying') : t('continueBtn')}
             </SubmitButton>
-            <Hint>
-              {t('apiKeyHint')}
-            </Hint>
+            <Hint>{t('apiKeyHint')}</Hint>
           </Actions>
         </StyledForm>
       </Card>

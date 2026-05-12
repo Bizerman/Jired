@@ -87,7 +87,7 @@ export const InputWrapper = styled.div`
   display: flex;
   align-items: center;
   border-radius: 6px;
-  border: 1px solid #AD1E1E;
+  border: 1px solid ${color.primary};
   padding: 12px 20px;
   gap: 10px;
 `;
@@ -110,7 +110,7 @@ export const Actions = styled.div`
 
 export const SubmitButton = styled.button`
   padding: 8px 20px;
-  background-color: #AD1E1E;
+  background-color: ${color.primary};
   border-radius: 5px;
   border: none;
   cursor: pointer;
@@ -118,7 +118,7 @@ export const SubmitButton = styled.button`
   font-size: 14px;
   font-weight: 500;
   font-family: 'Outfit', sans-serif;
-  opacity: ${props => props.disabled ? 0.7 : 1};
+  opacity: ${(props) => (props.disabled ? 0.7 : 1)};
   ${mixin.clickable}
 `;
 
@@ -134,4 +134,17 @@ export const CheckingWrapper = styled.div`
   align-items: center;
   height: 100vh;
   ${font.regular}
+`;
+
+export const LangToggle = styled.button`
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: 1px solid ${color.borderLight};
+  border-radius: 4px;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  color: ${color.textDark};
 `;

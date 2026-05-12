@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { useHistory } from 'react-router-dom';
-import { useFormikContext, Field } from 'formik';
+import { Field } from 'formik';
 import { Icon } from 'shared/components';
 import toast from 'shared/utils/toast';
 import useApi from 'shared/hooks/api';
 import { Form, Breadcrumbs, Modal } from 'shared/components';
-import { color as colorConst, color } from 'shared/utils/styles';
+import { color } from 'shared/utils/styles';
 import { useLanguage } from 'context/LanguageContext';
-import { AccessSelect } from '../../ProjectCreate/AccessSelect';
-import defaultProjectIcon from 'App/assets/imgs/projectdefault.svg';
+import CheckboxField from 'shared/components/CheckboxField';
+import AccessSelect from '../../ProjectCreate/AccessSelect';
+import defaultProjectIcon from '../../App/assets/imgs/projectdefault.svg';
 
 import {
   FormCont,
@@ -22,7 +22,6 @@ import {
   UploadLabel,
   ColorInputLabel,
   ColorInput,
-  FormFields,
   FieldGroup,
   FieldLabel,
   StyledInput,
@@ -36,41 +35,10 @@ import {
   DeleteModalActions,
   DeleteModalCancelButton,
   DeleteModalConfirmButton,
-  DeleteIconWrapper,
-  TrashIcon,
+  FormFieldsWrapper,
+  Separator,
+  ActionsWrapper,
 } from './Styles';
-
-const propTypes = {
-  project: PropTypes.object.isRequired,
-  fetchProject: PropTypes.func.isRequired,
-};
-
-const CheckboxField = ({ name, label }) => {
-  const { values, setFieldValue } = useFormikContext();
-  const checked = values[name];
-
-  return (
-    <label
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 8,
-        cursor: 'pointer', userSelect: 'none', width: 'fit-content'
-      }}
-      onClick={() => setFieldValue(name, !checked)}
-    >
-      <span
-        style={{
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          width: 18, height: 18, border: `1px solid ${color.borderLight}`, borderRadius: 4,
-          background: checked ? color.primary : '#fff', color: '#fff',
-          transition: 'background 0.15s', flexShrink: 0,
-        }}
-      >
-        {checked && <span style={{ fontWeight: 'bold', fontSize: 12, lineHeight: 1 }}>✓</span>}
-      </span>
-      <span style={{ fontSize: '15px', color: '#3f3f3f' }}>{label}</span>
-    </label>
-  );
-};
 
 const ProjectSettings = ({ project, fetchProject }) => {
   const [{ isUpdating }, updateProject] = useApi.put(`/projects/${project.id}.json`);
@@ -80,14 +48,7 @@ const ProjectSettings = ({ project, fetchProject }) => {
   const [icon, setIcon] = useState(null);
   const [iconPreview, setIconPreview] = useState(null);
   const [iconBgColor, setIconBgColor] = useState(color.backgroundMedium);
-
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
-
-  const isMounted = useRef(true);
-  const history = useHistory();
-  useEffect(() => {
-    return () => { isMounted.current = false; };
-  }, []);
 
   useEffect(() => {
     const savedIcon = localStorage.getItem(`project_icon_${project.id}`);
@@ -104,7 +65,6 @@ const ProjectSettings = ({ project, fetchProject }) => {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      if (!isMounted.current) return;
       const dataUrl = ev.target.result;
       setIcon(dataUrl);
       setIconPreview(dataUrl);
@@ -141,18 +101,12 @@ const ProjectSettings = ({ project, fetchProject }) => {
     }
   };
 
-  const handleDeleteClick = () => setDeleteModalOpen(true);
-  const handleDeleteCancel = () => setDeleteModalOpen(false);
-
   const handleDeleteConfirm = async () => {
     try {
       await deleteProject();
-      try {
-        const recent = JSON.parse(localStorage.getItem('recentProjects') || '[]');
-        const updated = recent.filter(id => id !== project.id);
-        localStorage.setItem('recentProjects', JSON.stringify(updated));
-      } catch (e) {}
-      
+      const recent = JSON.parse(localStorage.getItem('recentProjects') || '[]');
+      const updated = recent.filter(id => id !== project.id);
+      localStorage.setItem('recentProjects', JSON.stringify(updated));
       localStorage.removeItem('currentProjectId');
       toast.success(t('projectDeleted'));
       window.location.href = '/project/board';
@@ -197,7 +151,7 @@ const ProjectSettings = ({ project, fetchProject }) => {
                 <Asterisk>*</Asterisk>
               </RequiredNote>
 
-              <FormFields style={{ marginTop: '24px' }}>
+              <FormFieldsWrapper>
                 <FieldGroup>
                   <FieldLabel><span>{t('name')} </span><Asterisk>*</Asterisk></FieldLabel>
                   <Field name="name">
@@ -210,11 +164,7 @@ const ProjectSettings = ({ project, fetchProject }) => {
                   <IconCard>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <IconPreview bg={iconBgColor}>
-                        <img
-                          src={iconPreview || defaultProjectIcon}
-                          alt=""
-                          style={{ width: '65%', height: '65%', objectFit: 'contain' }}
-                        />
+                        <img src={iconPreview || defaultProjectIcon} alt="" />
                       </IconPreview>
                       <div style={{ flex: 1 }}>
                         <p style={{ margin: 0, fontWeight: 500, color: '#202020', fontSize: '14px' }}>
@@ -227,7 +177,7 @@ const ProjectSettings = ({ project, fetchProject }) => {
                     </div>
                     <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
                       <UploadLabel>
-                        <input type="file" accept="image/*" onChange={handleIconChange} style={{ display: 'none' }} />
+                        <input type="file" accept="image/*" onChange={handleIconChange} hidden />
                         {t('chooseImage')}
                       </UploadLabel>
                       <ColorInputLabel>
@@ -267,18 +217,25 @@ const ProjectSettings = ({ project, fetchProject }) => {
                   <AccessSelect compact />
                 </FieldGroup>
                 <CheckboxField name="inherit_members" label={t('inheritMembers')} />
-              </FormFields>
+              </FormFieldsWrapper>
 
-              <hr style={{ margin: '32px 0 24px', border: 'none', borderTop: `1px solid ${colorConst.borderLightest}` }} />
+              <Separator />
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 32 }}>
-                <SubmitButton onClick={formik.submitForm} disabled={formik.isSubmitting || isDeleting}>
-                  {formik.isSubmitting ? t('saving') : t('saveChanges')}
+              <ActionsWrapper>
+                <SubmitButton
+                  onClick={formik.submitForm}
+                  disabled={formik.isSubmitting || isUpdating || isDeleting}
+                >
+                  {formik.isSubmitting || isUpdating ? t('saving') : t('saveChanges')}
                 </SubmitButton>
-                <DeleteButton type="button" onClick={handleDeleteClick} disabled={isDeleting || formik.isSubmitting}>
+                <DeleteButton
+                  type="button"
+                  onClick={() => setDeleteModalOpen(true)}
+                  disabled={isDeleting || formik.isSubmitting || isUpdating}
+                >
                   {isDeleting ? t('deleting') : t('deleteProject')}
                 </DeleteButton>
-              </div>
+              </ActionsWrapper>
             </FormElement>
           </FormCont>
         )}
@@ -286,7 +243,7 @@ const ProjectSettings = ({ project, fetchProject }) => {
 
       <Modal
         isOpen={isDeleteModalOpen}
-        onClose={handleDeleteCancel}
+        onClose={() => setDeleteModalOpen(false)}
         testid="modal:delete-project-confirm"
         width={480}
         renderContent={() => (
@@ -296,7 +253,7 @@ const ProjectSettings = ({ project, fetchProject }) => {
               {t('deleteProjectMessage', { projectName: project.name })}
             </DeleteModalMessage>
             <DeleteModalActions>
-              <DeleteModalCancelButton onClick={handleDeleteCancel} disabled={isDeleting}>
+              <DeleteModalCancelButton onClick={() => setDeleteModalOpen(false)} disabled={isDeleting}>
                 {t('cancel')}
               </DeleteModalCancelButton>
               <DeleteModalConfirmButton onClick={handleDeleteConfirm} disabled={isDeleting}>
@@ -311,5 +268,9 @@ const ProjectSettings = ({ project, fetchProject }) => {
   );
 };
 
-ProjectSettings.propTypes = propTypes;
+ProjectSettings.propTypes = {
+  project: PropTypes.object.isRequired,
+  fetchProject: PropTypes.func.isRequired,
+};
+
 export default ProjectSettings;

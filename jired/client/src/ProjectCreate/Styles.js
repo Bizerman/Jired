@@ -1,7 +1,6 @@
 import styled from 'styled-components';
 import { color, font } from 'shared/utils/styles';
 
-// ─── Page shell ─────────────────────────────────────────────────────────────
 export const PageWrapper = styled.div`
   min-height: 100vh;
   background: #fff;
@@ -12,19 +11,19 @@ export const PageWrapper = styled.div`
 `;
 
 export const TopBar = styled.div`
-  padding: 1.625rem 1.9375rem 0;  /* 26px 31px 0 */
+  padding: 1.625rem 1.9375rem 0;
 `;
 
 export const BackBtn = styled.button`
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;  /* 8px */
+  gap: 0.5rem;
   background: none;
   border: 1px solid #ececec;
-  border-radius: 0.375rem;  /* 6px */
-  padding: 0.5rem 1.125rem;  /* 8px 18px */
+  border-radius: 0.375rem;
+  padding: 0.5rem 1.125rem;
   ${font.medium}
-  font-size: 1.0625rem;  /* 17px */
+  font-size: 1.0625rem;
   color: #5f5f5f;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;
@@ -33,71 +32,69 @@ export const BackBtn = styled.button`
     color: #360f0f;
   }
   i {
-    font-size: 1.125rem;  /* 18px */
+    font-size: 1.125rem;
   }
 `;
 
-// ─── Two‑panel layout ────────────────────────────────────────────────────────
 export const MainContainer = styled.main`
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 20%;
-  padding: 3.25rem 3.875rem 6.5rem;  /* 52px 62px 104px */
+  padding: 3.25rem 3.875rem 6.5rem;
   flex: 1;
 
   @media (max-width: 1100px) {
-    gap: 4.0625rem;  /* 65px */
-    padding: 2.4375rem 2.625rem 4.875rem;  /* 39px 42px 78px */
+    gap: 4.0625rem;
+    padding: 2.4375rem 2.625rem 4.875rem;
   }
   @media (max-width: 900px) {
     flex-direction: column;
     align-items: flex-start;
-    gap: 3.25rem;  /* 52px */
-    padding: 1.9375rem 1.9375rem 4.875rem;  /* 31px 31px 78px */
+    gap: 3.25rem;
+    padding: 1.9375rem 1.9375rem 4.875rem;
   }
 `;
 
-// ─── Left panel ──────────────────────────────────────────────────────────────
 export const LeftPanel = styled.section`
-  width: 28.4375rem;  /* 455px */
+  width: 28.4375rem;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 2.4375rem;  /* 39px */
-  padding: 1.625rem 0;  /* 26px 0 */
+  gap: 2.4375rem;
+  padding: 1.625rem 0;
   @media (max-width: 900px) {
     width: 100%;
-    max-width: 36.5625rem;  /* 585px */
+    max-width: 36.5625rem;
   }
 `;
 
 export const HeaderSection = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1rem;  /* 16px */
+  gap: 1rem;
 `;
 
 export const Title = styled.h3`
   margin: 0;
   ${font.bold}
-  font-size: 1.9375rem;  /* 31px */
+  font-size: 1.9375rem;
   color: #360f0f;
   @media (max-width: 450px) {
-    font-size: 1.5625rem;  /* 25px */
+    font-size: 1.5625rem;
   }
 `;
 
 export const DescriptionGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1.625rem;  /* 26px */
+  gap: 1.625rem;
 `;
 
 export const DescText = styled.p`
   margin: 0;
   ${font.regular}
-  font-size: 1.125rem;  /* 18px */
+  font-size: 1.125rem;
   color: #725757;
   line-height: 1.5;
 `;
@@ -105,7 +102,7 @@ export const DescText = styled.p`
 export const RequiredNote = styled.p`
   margin: 0;
   ${font.regular}
-  font-size: 1.125rem;  /* 18px */
+  font-size: 1.125rem;
   color: #725757;
 `;
 
@@ -113,17 +110,16 @@ export const Asterisk = styled.span`
   color: #da2d20;
 `;
 
-// ─── Form section ────────────────────────────────────────────────────────────
 export const FormSection = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2.4375rem;  /* 39px */
+  gap: 2.4375rem;
 `;
 
 export const FormFields = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1.625rem;  /* 26px */
+  gap: 1.625rem;
 `;
 
 export const FieldGroup = styled.div`
@@ -134,20 +130,20 @@ export const FieldGroup = styled.div`
 export const FieldLabel = styled.label`
   display: block;
   ${font.medium}
-  font-size: 1rem;  /* 16px */
+  font-size: 1rem;
   color: #5f5f5f;
-  margin-bottom: 0.5rem;  /* 8px */
+  margin-bottom: 0.5rem;
 `;
 
 export const StyledInput = styled.input`
   width: 100%;
   ${font.regular}
-  font-size: 1.3125rem;  /* 21px */
+  font-size: 1.3125rem;
   color: #3f3f3f;
   background: #fff;
   border: 1px solid #ececec;
-  border-radius: 0.5rem;  /* 8px */
-  padding: 1rem 1.625rem;  /* 16px 26px */
+  border-radius: 0.5rem;
+  padding: 1rem 1.625rem;
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
   &::placeholder {
@@ -155,30 +151,30 @@ export const StyledInput = styled.input`
   }
   &:focus {
     border-color: #ad1e1e;
-    box-shadow: 0 0 0 0.25rem rgba(173, 30, 30, 0.08);  /* 4px */
+    box-shadow: 0 0 0 0.25rem rgba(173, 30, 30, 0.08);
   }
 `;
 
 export const KeyField = styled.div`
-  width: 11.75rem;  /* 188px */
+  width: 11.75rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;  /* 8px */
+  gap: 0.5rem;
 `;
 
 export const KeyInput = styled.input`
   width: 100%;
   ${font.medium}
-  font-size: 1.3125rem;  /* 21px */
+  font-size: 1.3125rem;
   color: #3f3f3f;
   text-transform: uppercase;
   background: #fff;
   border: 1px solid #ececec;
-  border-radius: 0.5rem;  /* 8px */
-  padding: 0.8125rem 1.5625rem;  /* 13px 25px */
+  border-radius: 0.5rem;
+  padding: 0.8125rem 1.5625rem;
   outline: none;
   transition: border-color 0.15s;
-  letter-spacing: 0.040625rem;  /* 0.65px */
+  letter-spacing: 0.040625rem;
   &::placeholder {
     color: #b5b5b5;
     ${font.regular}
@@ -188,36 +184,46 @@ export const KeyInput = styled.input`
   &:focus {
     border-color: #ad1e1e;
   }
-`;
-
-export const StyledSelect = styled.select`
-  width: 100%;
-  ${font.regular}
-  font-size: 1.3125rem;  /* 21px */
-  color: #3f3f3f;
-  background: #fff;
-  border: 1px solid #ececec;
-  border-radius: 0.5rem;  /* 8px */
-  padding: 1rem 1.625rem;  /* 16px 26px */
-  outline: none;
-  appearance: none;
-  transition: border-color 0.15s;
-  cursor: pointer;
-  &:focus {
-    border-color: #ad1e1e;
+  &[readOnly] {
+    background: #f9f9f9;
+    cursor: pointer;
+    user-select: none;
   }
 `;
 
-// ─── Submit button ────────────────────────────────────────────────────────────
+export const RightPanel = styled.section`
+  position: relative;
+  width: clamp(23.75rem, 45vw, 35%);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5%;
+  background-image: url(${require('App/assets/imgs/project-creation.svg').default});
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+
+  @media (max-width: 1100px) {
+    width: 32.5rem;
+    padding: 1.9375rem;
+  }
+  @media (max-width: 900px) {
+    width: 100%;
+    max-width: 42.25rem;
+    margin: 0 auto;
+  }
+`;
+
 export const SubmitButton = styled.button`
   align-self: flex-end;
   ${font.medium}
-  font-size: 1.125rem;  /* 18px */
+  font-size: 1.125rem;
   color: #fff;
   background: ${color.primary};
   border: none;
-  border-radius: 0.375rem;  /* 6px */
-  padding: 0.8125rem 1.9375rem;  /* 13px 31px */
+  border-radius: 0.375rem;
+  padding: 0.8125rem 1.9375rem;
   cursor: pointer;
   transition: opacity 0.15s, transform 0.1s;
   &:hover {
@@ -232,30 +238,6 @@ export const SubmitButton = styled.button`
   }
 `;
 
-// ─── Right panel (с фоновой SVG) ─────────────────────────────────────────────
-export const RightPanel = styled.section`
-  position: relative;
-  width: clamp(23.75rem, 45vw, 35%);  /* clamp(380px, 45vw, 35%) */
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 5%;
-  background-image: url(${props => props.bg});
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-
-  @media (max-width: 1100px) {
-    width: 32.5rem;  /* 520px */
-    padding: 1.9375rem;  /* 31px */
-  }
-  @media (max-width: 900px) {
-    width: 100%;
-    max-width: 42.25rem;  /* 676px */
-    margin: 0 auto;
-  }
-`;
 export const IconCard = styled.div`
   background: #fff;
   border: 1px solid ${color.borderLightest};
@@ -325,6 +307,7 @@ export const ColorInput = styled.input`
     border-radius: 0.25rem;
   }
 `;
+
 export const ShowMoreBtn = styled.button`
   display: inline-flex;
   align-items: center;
@@ -339,8 +322,6 @@ export const ShowMoreBtn = styled.button`
   align-self: flex-start;
 
   &:hover {
-    border-color: #ad1e1e;
-    /* подчёркивание только у span с текстом */
     span {
       text-decoration: underline;
     }
@@ -349,4 +330,42 @@ export const ShowMoreBtn = styled.button`
   i {
     font-size: 16px;
   }
+`;
+
+export const IconTextContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+`;
+
+export const IconTextContent = styled.div`
+  flex: 1;
+`;
+
+export const IconTextTitle = styled.p`
+  margin: 0;
+  font-weight: 600;
+  color: #202020;
+  font-size: 1rem;
+`;
+
+export const IconTextSubtitle = styled.p`
+  margin: 4px 0 0;
+  color: #7e7e7e;
+  font-size: 0.875rem;
+`;
+
+export const IconActions = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+`;
+
+export const BoardImagePreview = styled.div`
+  width: 100%;
+  height: 0;
+  padding-bottom: 75%;
+  background: url(${require('App/assets/imgs/project-creation-board.svg').default}) center/contain no-repeat;
+  pointer-events: none;
+  user-select: none;
 `;

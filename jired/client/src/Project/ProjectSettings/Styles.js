@@ -74,7 +74,7 @@ export const StyledInput = styled.input`
     color: #b5b5b5;
   }
   &:focus {
-    border-color: #ad1e1e;
+    border-color: ${color.primary};
     box-shadow: 0 0 0 3px rgba(173, 30, 30, 0.08);
   }
 `;
@@ -135,6 +135,11 @@ export const IconPreview = styled.div`
   justify-content: center;
   overflow: hidden;
   flex-shrink: 0;
+  img {
+    width: 65%;
+    height: 65%;
+    object-fit: contain;
+  }
 `;
 
 export const UploadLabel = styled.label`
@@ -196,38 +201,47 @@ export const DeleteButton = styled.button`
   &:disabled { opacity: 0.6; cursor: not-allowed; }
 `;
 
-// ---------- Обновлённое модальное окно (без анимации, с иконкой trash) ----------
+export const FormFieldsWrapper = styled(FormFields)`
+  margin-top: 24px;
+`;
+
+export const Separator = styled.hr`
+  margin: 32px 0 24px;
+  border: none;
+  border-top: 1px solid ${color.borderLightest};
+`;
+
+export const ActionsWrapper = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 32px;
+`;
 
 export const DeleteModalContent = styled.div`
-  padding: 40px 32px 32px;   /* увеличены отступы */
+  padding: 40px 32px 32px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  border-radius: 12px;       /* скругление контейнера */
-  overflow: hidden;          /* чтобы скругление обрезало содержимое */
-`;
-
-export const DeleteIconWrapper = styled.div`
-  margin-bottom: 20px;
-  font-size: 32px;
-  color: #D92D20;
-  line-height: 1;
+  border-radius: 12px;
+  overflow: hidden;
 `;
 
 export const DeleteModalTitle = styled.h2`
   font-size: 22px;
   font-weight: 700;
   color: ${color.textDark};
-  margin: 0 0 20px;          /* увеличен отступ */
+  margin: 0 0 20px;
   ${font.bold}
 `;
+
 export const DeleteModalMessage = styled.p`
   font-size: 15px;
   line-height: 1.6;
   color: ${color.textMedium};
-  margin: 0 0 40px;          
-  max-width: 420px;           
+  margin: 0 0 40px;
+  max-width: 420px;
   ${font.regular}
 
   strong {
@@ -239,7 +253,7 @@ export const DeleteModalMessage = styled.p`
 export const DeleteModalActions = styled.div`
   display: flex;
   justify-content: center;
-  gap: 16px;                 
+  gap: 16px;
   width: 100%;
 `;
 
