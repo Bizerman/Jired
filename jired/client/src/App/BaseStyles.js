@@ -137,7 +137,7 @@ export default createGlobalStyle`
 
   @font-face {
   font-family: 'Outfit';
-  src: url('./assets/fonts/Outfit-Medium.ttf') format('truetype');
+  src: url('/assets/fonts/Outfit-Medium.ttf') format('truetype');
   font-weight: 500;
   font-style: normal;
 }

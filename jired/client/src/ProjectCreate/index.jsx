@@ -54,7 +54,8 @@ const ProjectCreate = () => {
   const history = useHistory();
   const { t } = useLanguage();
   const [{ isCreating }, createProject] = useApi.post('/projects.json');
-
+  const [{ data: projectsData }] = useApi.get('/projects.json');
+  const hasProjects = (projectsData?.projects?.length || 0) > 0;
   const [icon, setIcon] = useState(null);
   const [iconPreview, setIconPreview] = useState(null);
   const [iconBgColor, setIconBgColor] = useState(color.backgroundMedium);
@@ -134,9 +135,11 @@ const ProjectCreate = () => {
 
   return (
     <PageWrapper>
-      <TopBar>
-        <BackBtn onClick={() => history.goBack()}>{t('backToYourWork')}</BackBtn>
-      </TopBar>
+      {hasProjects && (
+        <TopBar>
+          <BackBtn onClick={() => history.goBack()}>{t('backToYourWork')}</BackBtn>
+        </TopBar>
+      )}
       <Form
         initialValues={{
           name: '',

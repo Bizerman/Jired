@@ -213,7 +213,9 @@ const IssueCreate = ({ project, projects, fetchProject, onCreate, modalClose, in
       toast.error('File upload failed');
     } finally {
       setUploadingFiles(false);
-      e.target.value = '';
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 

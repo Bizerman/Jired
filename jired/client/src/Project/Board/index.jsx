@@ -37,6 +37,9 @@ const ProjectBoard = ({ project, fetchProject, updateLocalProjectIssues, moveIss
   const showOnlyDone = searchParams.get('done') === '1';
   const [priorities, setPriorities] = useState([]);
   const [{ data: prioritiesData }] = useApi.get('/enumerations/issue_priorities.json');
+  useEffect(() => {
+    if (prioritiesData?.issue_priorities) setPriorities(prioritiesData.issue_priorities);
+  }, [prioritiesData]);
   const [groups, setGroups] = useState(() => {
     try {
       const saved = localStorage.getItem(`jired_groups_${project.id}`);
