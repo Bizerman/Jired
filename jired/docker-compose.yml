@@ -7,6 +7,8 @@ services:
       POSTGRES_PASSWORD: "3657635"
       POSTGRES_DB: "redmine"
       PGDATA: "/var/lib/postgresql/data"
+    networks:
+      - jired-network
     restart: always
 
   redmine:
@@ -26,8 +28,11 @@ services:
       REDMINE_PLUGINS_MIGRATE: "true"
       REDMINE_ATTACHMENTS_STORAGE: db
       REDMINE_LOG_LEVEL: debug
+    networks:
+      - jired-network
     restart: always
-  middleware: 
+
+  middleware:
     build: ./middleware
     container_name: jired-middleware
     ports:
@@ -41,6 +46,19 @@ services:
     depends_on:
       - redmine
     restart: always
+
+  frontend:
+    build: ./client
+    container_name: jired-frontend
+    ports:
+      - "8080:80"
+    networks:
+      - jired-network
+    depends_on:
+      - redmine
+      - middleware
+    restart: always
+
 networks:
   jired-network:
     driver: bridge

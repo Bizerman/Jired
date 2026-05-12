@@ -1,9 +1,12 @@
-const router = require('express').Router();
-const fetch = require('node-fetch');
+const express = require('express');
+const router = express.Router();
 
 const API_KEY = process.env.YANDEXGPT_API_KEY;
 const FOLDER_ID = process.env.YANDEXGPT_FOLDER_ID;
 const API_URL = 'https://llm.api.cloud.yandex.net/foundationModels/v1/completion';
+
+
+router.use(express.json());
 
 router.post('/', async (req, res) => {
   const { issues } = req.body;

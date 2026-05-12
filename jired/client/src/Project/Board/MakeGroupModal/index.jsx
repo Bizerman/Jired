@@ -18,8 +18,8 @@ import {
   Footer,
   Loader,
   ErrorMsg,
-  GroupCardCreate,   // ← импортируем
-  GroupTitleInput,   // ← импортируем
+  GroupCardCreate,
+  GroupTitleInput,
 } from './Styles';
 import { getCachedGroups, setCachedGroups, clearCachedGroups } from 'shared/utils/groupCache';
 
@@ -35,7 +35,7 @@ const MakeGroupModal = ({ issues, projectUsers, priorities, groups: initialGroup
   const fetchGroups = useCallback(() => {
     setLoading(true);
     setError(null);
-    fetch('http://localhost:3001/api/group-issues', {
+    fetch('/api/group-issues', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -87,11 +87,8 @@ const MakeGroupModal = ({ issues, projectUsers, priorities, groups: initialGroup
   };
 
   const handleCreateEmptyGroup = () => {
-    const maxId = groups.reduce((max, g) => {
-      const id = Number(g.id);
-      return id > max ? id : max;
-    }, 0);
-    const newId = Number(maxId) + 1;
+    const maxId = groups.reduce((max, g) => Math.max(max, Number(g.id)), 0);
+    const newId = maxId + 1;
     setGroups(prev => [...prev, { id: newId, name: '', tasks: [] }]);
     setEditingGroupId(newId);
   };
@@ -163,9 +160,7 @@ const MakeGroupModal = ({ issues, projectUsers, priorities, groups: initialGroup
                       ) : (
                         <GroupTitle
                           onClick={() => setEditingGroupId(group.id)}
-                          style={{ cursor: 'text', minHeight: '22px', transition: 'color 0.15s' }}
-                          onMouseEnter={e => (e.target.style.color = '#AD1E1E')}
-                          onMouseLeave={e => (e.target.style.color = 'inherit')}
+                          style={{ cursor: 'text', minHeight: '22px' }}
                         >
                           {group.name || t('untitledGroup')}
                         </GroupTitle>
