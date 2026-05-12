@@ -20,6 +20,7 @@ const ProjectBoardIssueDetails = ({
   updateLocalProjectIssues,
   modalClose,
   onAttachmentUploaded,
+  project,
 }) => {
   const [issue, setIssue] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -180,6 +181,7 @@ const ProjectBoardIssueDetails = ({
       return;
     }
     await updateIssue(pendingChanges);
+    fetchProject();
     setPendingChanges({});
     setIsEditing(false);
     fetchIssue();
@@ -239,6 +241,8 @@ const ProjectBoardIssueDetails = ({
           currentUser={currentUser}
           statuses={statuses}
           priorities={priorities}
+          project={project}
+          fetchProject={fetchProject}
         />
         <RightPanel
           issue={issue}

@@ -39,9 +39,13 @@ const RelationModal = ({ issue, onClose, onCreated }) => {
       }
     } catch (error) {
       if (isMountedRef.current) {
-        const serverErrors = error.response?.data?.errors;
-        const errorMessage = Array.isArray(serverErrors) ? serverErrors.join(', ') : (error.message || 'Unknown error');
-        console.error('Relation creation error:', error.response?.data || error);
+        const serverErrors = error?.errors;
+        const errorMessage = Array.isArray(serverErrors)
+          ? serverErrors.join(', ')
+          : (error?.message || 'Unknown error');
+
+        console.error('Relation creation error:', error);
+        // Все ошибки показываем через toast
         toast.error('Failed: ' + errorMessage);
       }
     } finally {

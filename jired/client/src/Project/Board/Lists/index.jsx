@@ -12,7 +12,7 @@ import toast from 'shared/utils/toast';
 const ProjectBoardLists = ({
   project, filters, updateLocalProjectIssues,
   moveIssueInList, moveIssuesInColumn, showOnlyDone,
-  groups, onGroupsChange, updateAllIssues
+  groups, onGroupsChange, updateAllIssues, fetchProject
 }) => {
   const { currentUserId } = useCurrentUser();
   const [selectedIssueIds, setSelectedIssueIds] = useState(new Set());
@@ -168,6 +168,9 @@ const ProjectBoardLists = ({
               headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Redmine-API-Key': authToken },
             });
           }));
+          if (fetchProject) {
+           fetchProject(`/projects/${project.id}.json?include=issues`);
+          }
         } catch (error) {
           console.error('Group update failed', error);
         }
@@ -246,6 +249,9 @@ const ProjectBoardLists = ({
             headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Redmine-API-Key': authToken },
           });
         }));
+        if (fetchProject) {
+          fetchProject(`/projects/${project.id}.json?include=issues`);
+        }
       } catch (error) {
         console.error('Mass update failed', error);
       }

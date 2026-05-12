@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { Link } from 'react-router-dom';
 
 const f = {
   secondary900: '#4a2727',
@@ -208,4 +209,47 @@ export const ActionsRow = styled.div`
   flex-wrap: wrap;
   gap: 1rem;
   align-items: center;
+`;
+export const SubtaskBlock = styled.div`
+  margin-top: 1rem;
+`;
+
+export const SubtaskItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.25rem 0;
+`;
+
+export const SubtaskLink = styled(Link)`
+  color: #ad1e1e;
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
+export const SubtaskStatus = styled.span`
+  background: ${({ status, statuses }) => {
+    const found = statuses.find(s => s.id === status);
+    if (!found) return '#e8e1e1';
+    const name = found.name.toLowerCase();
+    if (name.includes('backlog')) return '#e8e1e1';
+    if (name.includes('progress')) return '#fde8e8';
+    if (name.includes('done')) return '#e4fcef';
+    return '#e8e1e1';
+  }};
+  color: ${({ status, statuses }) => {
+    const found = statuses.find(s => s.id === status);
+    if (!found) return '#5e3f3f';
+    const name = found.name.toLowerCase();
+    if (name.includes('backlog')) return '#5e3f3f';
+    if (name.includes('progress')) return '#ad1e1e';
+    if (name.includes('done')) return '#0B875B';
+    return '#5e3f3f';
+  }};
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 500;
 `;

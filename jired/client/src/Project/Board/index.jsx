@@ -98,6 +98,7 @@ const ProjectBoard = ({ project, fetchProject, updateLocalProjectIssues, moveIss
         moveIssuesInColumn={moveIssuesInColumn}
         updateAllIssues={updateAllIssues}
         showOnlyDone={showOnlyDone}
+        fetchProject={fetchProject}
       />
       <Route
         path={`${match.path}/issues/:issueId`}
@@ -115,6 +116,7 @@ const ProjectBoard = ({ project, fetchProject, updateLocalProjectIssues, moveIss
                 fetchProject={() => fetchProject(`/projects/${project.id}.json?include=issues`)}
                 updateLocalProjectIssues={updateLocalProjectIssues}
                 modalClose={modal.close}
+                project={project}
               />
             )}
           />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { createQueryParamModalHelpers } from 'shared/utils/queryParamModal';
 import { PageLoader, Modal, Icon } from 'shared/components';
@@ -92,11 +92,19 @@ const YourWork = () => {
     if (!currentUserId) return;
     setIsTasksLoading(true);
     api.get(`/issues.json?assigned_to_id=${currentUserId}&status_id=*&limit=1000`)
-      .then(res => setMyIssues(res.issues || []))
+      .then(res => {
+        const raw = res.issues || [];
+        const normalized = raw.map(issue => ({
+          ...issue,
+          title: issue.subject,
+          type: 'task',
+          userIds: issue.assigned_to ? [issue.assigned_to.id] : [],
+        }));
+        setMyIssues(normalized);
+      })
       .catch(err => console.error('Failed to fetch my issues', err))
       .finally(() => setIsTasksLoading(false));
   }, [currentUserId]);
-
   const myOpenIssues = myIssues.filter(issue => !issue.status?.is_closed);
 
   const [recentProjects, setRecentProjects] = useState([]);
@@ -120,9 +128,10 @@ const YourWork = () => {
     }
   }, [projects]);
 
-  const defaultProject = projects[0]
-    ? { ...projects[0], issues: [] }
-    : { name: 'Jired', issues: [] };
+  const defaultProject = useMemo(() => {
+    if (projects.length === 0) return { name: 'Jired', issues: [] };
+    return { ...projects[0], issues: myIssues };
+  }, [projects, myIssues]);
 
   if (isProjectsLoading) return <PageLoader />;
 
@@ -132,7 +141,6 @@ const YourWork = () => {
         issueSearchModalOpen={issueSearchModalHelpers.open}
         issueCreateModalOpen={issueCreateModalHelpers.open}
         project={defaultProject}
-        hideAssignedDropdown
         createDisabled
       />
 

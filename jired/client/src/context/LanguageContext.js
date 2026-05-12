@@ -252,7 +252,7 @@ const translations = {
     issueDeleteFailed: 'Failed to delete issue',
     more: 'More',
     moreRemaining: 'remaining',
-
+    subtasks: 'Subtasks',
   },
   ru: {
     yourWork: 'Ваша работа',
@@ -494,6 +494,7 @@ const translations = {
     issueDeleteFailed: 'Не удалось удалить задачу',
     more: 'Ещё',
     moreRemaining: 'осталось',
+    subtasks: 'Подзадачи',
   },
 };
 

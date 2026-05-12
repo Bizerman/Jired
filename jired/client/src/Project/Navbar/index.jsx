@@ -24,7 +24,6 @@ import {
   SearchContainer,
   SearchInput,
   IconBtn,
-  UserAvatar,
   GridButton,
   Iconbox,
   DropdownMenu,
@@ -52,7 +51,6 @@ const FlagIcon = ({ locale, size = 20 }) => {
       </svg>
     );
   }
-  // Улучшенный Union Jack
   return (
     <svg width={size} height={size} viewBox="0 0 20 20">
       <circle cx="10" cy="10" r="9" fill="none" stroke="#ccc" strokeWidth="0.5" />
@@ -80,7 +78,6 @@ const FlagIcon = ({ locale, size = 20 }) => {
   );
 };
 
-// Иконка выхода
 const LogoutIcon = () => (
   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
     <path d="M7 3H4C3.44772 3 3 3.44772 3 4V14C3 14.5523 3.44772 15 4 15H7M12 12L15 9M15 9L12 6M15 9H7"
@@ -147,7 +144,9 @@ const ProjectNavbar = ({
   };
 
   const tasksList = currentUserId
-    ? project.issues.filter((issue) => issue.userIds?.includes(currentUserId))
+    ? project.issues.filter((issue) =>
+        issue.userIds?.includes(currentUserId) && !issue.status?.is_closed
+      )
     : [];
 
   const renderPriorityIcon = (issue) => {

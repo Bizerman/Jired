@@ -4,6 +4,9 @@ import Title from '../Title';
 import Description from '../Description';
 import Comments from '../Comments';
 import RelationModal from '../RelationModal';
+import IssueCreate from '../../../IssueCreate';
+import { Modal } from 'shared/components';
+import api from 'shared/utils/api';
 import { useLanguage } from 'context/LanguageContext';
 import {
   LeftContainer,
@@ -30,25 +33,50 @@ import {
   RelationItem,
   RelationType,
   ActionsRow,
-} from './Styles';
+  SubtaskBlock,
+  SubtaskItem,
+  SubtaskLink,
+  SubtaskStatus,
+} from './Styles';   // добавлены SubtaskBlock, SubtaskItem, SubtaskLink, SubtaskStatus – определите их в Styles.js
 
-const LeftPanel = ({ issue, updateIssue, fetchIssue, isEditing, currentUser, statuses, priorities}) => {
+const LeftPanel = ({ issue, updateIssue, fetchIssue, isEditing, currentUser, statuses, priorities, project, fetchProject }) => {
   const { t } = useLanguage();
   const [activeFilter, setActiveFilter] = useState('All');
   const [sortOrder, setSortOrder] = useState('newest');
   const [relationModalOpen, setRelationModalOpen] = useState(false);
+  const [showChildIssueModal, setShowChildIssueModal] = useState(false);
+  const [subtasks, setSubtasks] = useState([]);
+  const [loadingSubtasks, setLoadingSubtasks] = useState(false);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
     return () => { isMountedRef.current = false; };
   }, []);
 
+  // Загрузка подзадач при изменении issue
+  useEffect(() => {
+    if (!issue?.id) return;
+    setLoadingSubtasks(true);
+    api.get(`/issues.json?parent_id=${issue.id}&status_id=*`)
+      .then(res => {
+        if (isMountedRef.current) setSubtasks(res.issues || []);
+      })
+      .catch(console.error)
+      .finally(() => {
+        if (isMountedRef.current) setLoadingSubtasks(false);
+      });
+  }, [issue?.id]);
+
   const handleRelationCreated = async () => {
     await fetchIssue();
-    if (isMountedRef.current) {
-      setRelationModalOpen(false);
-    }
+    if (isMountedRef.current) setRelationModalOpen(false);
   };
+
+  const handleChildIssueCreated = () => {
+  setShowChildIssueModal(false);
+  fetchIssue();
+  if (fetchProject) fetchProject();
+};
 
   return (
     <LeftContainer>
@@ -63,9 +91,9 @@ const LeftPanel = ({ issue, updateIssue, fetchIssue, isEditing, currentUser, sta
           </TitleRow>
           {!isEditing && (
             <ActionsRow>
-              <AddChildButton>
+              <AddChildButton onClick={() => setShowChildIssueModal(true)}>
                 <AddChildIcon>
-                  {/* SVG-иконка «Add a child issue» */}
+                  {/* SVG-иконка «Add a child issue» (без изменений) */}
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                     <path d="M16.955 11.5714H14.8658V8.51786C14.8658 8.42946 14.7934 8.35714 14.705 8.35714H9.7229V6.42857H11.8925C12.0693 6.42857 12.214 6.28393 12.214 6.10714V0.321429C12.214 0.144643 12.0693 0 11.8925 0H6.10683C5.93004 0 5.7854 0.144643 5.7854 0.321429V6.10714C5.7854 6.28393 5.93004 6.42857 6.10683 6.42857H8.27647V8.35714H3.29433C3.20594 8.35714 3.13362 8.42946 3.13362 8.51786V11.5714H1.04433C0.867543 11.5714 0.7229 11.7161 0.7229 11.8929V17.6786C0.7229 17.8554 0.867543 18 1.04433 18H6.83004C7.00683 18 7.15147 17.8554 7.15147 17.6786V11.8929C7.15147 11.7161 7.00683 11.5714 6.83004 11.5714H4.58004V9.80357H13.4193V11.5714H11.1693C10.9925 11.5714 10.8479 11.7161 10.8479 11.8929V17.6786C10.8479 17.8554 10.9925 18 11.1693 18H16.955C17.1318 18 17.2765 17.8554 17.2765 17.6786V11.8929C17.2765 11.7161 17.1318 11.5714 16.955 11.5714ZM5.62469 13.0982V16.4732H2.24969V13.0982H5.62469ZM7.31219 4.90179V1.52679H10.6872V4.90179H7.31219ZM15.7497 16.4732H12.3747V13.0982H15.7497V16.4732Z" fill="#3F3F3F"/>
                   </svg>
@@ -73,20 +101,38 @@ const LeftPanel = ({ issue, updateIssue, fetchIssue, isEditing, currentUser, sta
                 {t('addChildIssue')}
               </AddChildButton>
               <AddChildButton onClick={() => setRelationModalOpen(true)}>
+                {/* SVG-иконка «Add relation» (без изменений) */}
                 <AddChildIcon>
-                  {/* SVG-иконка «Add relation» */}
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                  <circle cx="4" cy="9" r="2.5" stroke="#3F3F3F" strokeWidth="1.5" fill="none"/>
-                  <circle cx="14" cy="9" r="2.5" stroke="#3F3F3F" strokeWidth="1.5" fill="none"/>
-                  <line x1="6.5" y1="9" x2="11.5" y2="9" stroke="#3F3F3F" strokeWidth="1.5"/>
-                  <line x1="9" y1="6" x2="9" y2="12" stroke="#3F3F3F" strokeWidth="1.5" strokeLinecap="round"/>
-                  <line x1="6" y1="9" x2="12" y2="9" stroke="#3F3F3F" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
+                    <circle cx="4" cy="9" r="2.5" stroke="#3F3F3F" strokeWidth="1.5" fill="none"/>
+                    <circle cx="14" cy="9" r="2.5" stroke="#3F3F3F" strokeWidth="1.5" fill="none"/>
+                    <line x1="6.5" y1="9" x2="11.5" y2="9" stroke="#3F3F3F" strokeWidth="1.5"/>
+                    <line x1="9" y1="6" x2="9" y2="12" stroke="#3F3F3F" strokeWidth="1.5" strokeLinecap="round"/>
+                    <line x1="6" y1="9" x2="12" y2="9" stroke="#3F3F3F" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
                 </AddChildIcon>
                 {t('addRelation')}
               </AddChildButton>
             </ActionsRow>
           )}
+
+          {/* Блок с подзадачами */}
+          {!isEditing && subtasks.length > 0 && (
+            <SubtaskBlock>
+              <SectionTitle>{t('subtasks')}</SectionTitle>
+              {subtasks.map(sub => (
+                <SubtaskItem key={sub.id}>
+                  <SubtaskLink to={`/project/board/issues/${sub.id}`} onClick={() => {/* переход уже обрабатывается */}}>
+                    ISSUE-{sub.id}: {sub.subject}
+                  </SubtaskLink>
+                  <SubtaskStatus status={sub.status?.id} statuses={statuses}>
+                    {sub.status?.name || '—'}
+                  </SubtaskStatus>
+                </SubtaskItem>
+              ))}
+            </SubtaskBlock>
+          )}
+
           {!isEditing && issue.relations && issue.relations.length > 0 && (
             <RelationsBlock>
               <SectionTitle>{t('relations')}</SectionTitle>
@@ -98,7 +144,7 @@ const LeftPanel = ({ issue, updateIssue, fetchIssue, isEditing, currentUser, sta
                 if (!relatedIssueId) return null;
                 const inverseTypes = {
                   blocks: 'blocked_by',
-                  blocked_by: 'blocks',
+                  blocked: 'blocks',
                   precedes: 'follows',
                   follows: 'precedes',
                 };
@@ -114,6 +160,7 @@ const LeftPanel = ({ issue, updateIssue, fetchIssue, isEditing, currentUser, sta
             </RelationsBlock>
           )}
         </HeaderBlock>
+
         <DescriptionBlock>
           <DescriptionTitle>{t('descriptionLabel')}</DescriptionTitle>
           {isEditing ? (
@@ -142,7 +189,6 @@ const LeftPanel = ({ issue, updateIssue, fetchIssue, isEditing, currentUser, sta
               </FilterButtons>
               <SortButton onClick={() => setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest')}>
                 {sortOrder === 'newest' ? t('newestFirst') : t('oldestFirst')}
-                {/* SVG-иконка сортировки */}
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <g clipPath="url(#clip0_3241_1128)">
                     <path d="M4.66667 0H2.66667C1.95942 0 1.28115 0.280952 0.781049 0.781049C0.280952 1.28115 0 1.95942 0 2.66667L0 4.66667C0 5.37391 0.280952 6.05219 0.781049 6.55229C1.28115 7.05238 1.95942 7.33333 2.66667 7.33333H4.66667C5.37391 7.33333 6.05219 7.05238 6.55229 6.55229C7.05238 6.05219 7.33333 5.37391 7.33333 4.66667V2.66667C7.33333 1.95942 7.05238 1.28115 6.55229 0.781049C6.05219 0.280952 5.37391 0 4.66667 0V0ZM6 4.66667C6 5.02029 5.85952 5.35943 5.60948 5.60948C5.35943 5.85952 5.02029 6 4.66667 6H2.66667C2.31304 6 1.97391 5.85952 1.72386 5.60948C1.47381 5.35943 1.33333 5.02029 1.33333 4.66667V2.66667C1.33333 2.31304 1.47381 1.97391 1.72386 1.72386C1.97391 1.47381 2.31304 1.33333 2.66667 1.33333H4.66667C5.02029 1.33333 5.35943 1.47381 5.60948 1.72386C5.85952 1.97391 6 2.31304 6 2.66667V4.66667Z" fill="#5E3F3F"/>
@@ -177,6 +223,26 @@ const LeftPanel = ({ issue, updateIssue, fetchIssue, isEditing, currentUser, sta
           issue={issue}
           onClose={() => setRelationModalOpen(false)}
           onCreated={handleRelationCreated}
+        />
+      )}
+
+      {/* Модальное окно создания дочерней задачи */}
+      {showChildIssueModal && (
+        <Modal
+          isOpen
+          testid="modal:create-child-issue"
+          width={1040}
+          withCloseIcon={false}
+          onClose={() => setShowChildIssueModal(false)}
+          renderContent={modal => (
+            <IssueCreate
+              project={project}
+              fetchProject={() => {}}
+              initialValues={{ parent_issue_id: issue.id }}
+              onCreate={handleChildIssueCreated}
+              modalClose={modal.close}
+            />
+          )}
         />
       )}
     </LeftContainer>

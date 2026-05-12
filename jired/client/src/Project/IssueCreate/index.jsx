@@ -37,7 +37,7 @@ const propTypes = {
   modalClose: PropTypes.func.isRequired,
 };
 
-const IssueCreate = ({ project, projects, fetchProject, onCreate, modalClose }) => {
+const IssueCreate = ({ project, projects, fetchProject, onCreate, modalClose, initialValues }) => {
   const { t } = useLanguage();
   const [isCreating, setIsCreating] = useState(false);
   const [trackers, setTrackers] = useState([]);
@@ -312,6 +312,7 @@ const IssueCreate = ({ project, projects, fetchProject, onCreate, modalClose }) 
           start_date: '',
           done_ratio: 0,
           parent_issue_id: '',
+          ...initialValues,
         }}
         validations={{
           subject: [Form.is.required(), Form.is.maxLength(255)],

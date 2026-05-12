@@ -56,7 +56,7 @@ const Project = () => {
     if (newProjectIdParam) {
       history.replace('/project/board');
     }
-  }, []); // пустой массив – сработает один раз
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -80,24 +80,20 @@ const Project = () => {
         try {
           const projectId = data.project.id;
 
-          // 1. Получаем все трекеры
           const trackersRes = await api.get('/trackers.json');
           const allTrackers = trackersRes.trackers || [];
 
           for (const tracker of allTrackers) {
             try {
               await api.post(`/projects/${projectId}/trackers/${tracker.id}.json`);
-            } catch (e) {
-              // игнорируем ошибку, если уже привязан
-            }
+            } catch (e) {}
           }
 
-          // 2. Загружаем справочник статусов
           const statusesRes = await api.get('/issue_statuses.json');
           const statuses = statusesRes.issue_statuses || [];
           const prioritiesRes = await api.get('/enumerations/issue_priorities.json');
           const priorities = prioritiesRes.issue_priorities || [];
-          // 3. Загружаем задачи проекта
+
           const issuesRes = await api.get('/issues.json', {
             project_id: projectId,
             limit: 100,
@@ -105,25 +101,18 @@ const Project = () => {
             include: 'attachments',
           });
           const rawIssues = issuesRes.issues || [];
-          console.log('Total issues loaded:', rawIssues.length);
 
-          // 4. Нормализуем задачи
           const mappedIssues = rawIssues.map(issue => {
             const foundTracker = issue.tracker?.name || 'Task';
-            const foundPriority = issue.priority?.id ?? 2;
             const foundStatus = statuses.find(s => s.id === issue.status?.id);
             let statusKey = null;
 
             if (foundStatus) {
               const name = foundStatus.name.trim().toLowerCase();
-              console.log(`Issue #${issue.id}: status="${foundStatus.name}" -> key="${name}"`);
               if (name.includes('backlog')) statusKey = IssueStatus.BACKLOG;
               else if (name.includes('in progress')) statusKey = IssueStatus.INPROGRESS;
               else if (name.includes('done')) statusKey = IssueStatus.DONE;
-              else {
-                statusKey = IssueStatus.BACKLOG;
-                console.warn(`Unknown status "${foundStatus.name}" mapped to Backlog`);
-              }
+              else statusKey = IssueStatus.BACKLOG;
             }
 
             return {
@@ -151,48 +140,37 @@ const Project = () => {
               },
             });
             setIsNewlyCreated(false);
-            retryCountRef.current = 0; // сброс счётчика попыток
+            retryCountRef.current = 0;
           }
         } catch (e) {
           console.error('Metadata loading error', e);
-          if (isMountedRef.current) {
-            setProjectData(data);
-          }
+          if (isMountedRef.current) setProjectData(data);
         }
         if (isMountedRef.current) setIsProjectLoading(false);
       })
       .catch(error => {
-        console.log('Full error:', error);
-        console.log('error.status:', error.status);
-        const status = error?.status; // Ваш api.js кладёт статус прямо сюда
+        const status = error?.status;
 
         if (isMountedRef.current) {
-          // Если только что создали и получили 404 — пробуем ещё раз
           if (isNewlyCreated && status === 404) {
             if (retryCountRef.current < 5) {
               retryCountRef.current++;
-              console.log(`Project not ready yet, retry ${retryCountRef.current}/5 in 2s...`);
               setIsProjectLoading(true);
-              retryTimerRef.current = setTimeout(() => {
-                fetchProject(url); // используем url, а не projectId из состояния
-              }, 2000);
+              retryTimerRef.current = setTimeout(() => fetchProject(url), 2000);
               return;
             }
-            // Исчерпали попытки — показываем ошибку
-            console.log('Max retries reached, treating as error.');
             setProjectError(error);
             setIsProjectLoading(false);
             setIsNewlyCreated(false);
             return;
           }
 
-          // Обычная ошибка
           setProjectError(error);
           setIsProjectLoading(false);
           setIsNewlyCreated(false);
         }
       });
-  }, []); // зависимости не меняются, всё необходимое замкнуто
+  }, []);
 
   const setLocalProjectData = useCallback((updater) => {
     setProjectData(prev => updater(prev));
@@ -208,72 +186,43 @@ const Project = () => {
       const destGlobalIdx = columnIndices[destinationIndex];
       const [moved] = issues.splice(sourceGlobalIdx, 1);
       issues.splice(destGlobalIdx, 0, moved);
-      return {
-        project: {
-          ...prevData.project,
-          issues,
-        },
-      };
+      return { project: { ...prevData.project, issues } };
     });
   }, []);
+
   const updateAllIssues = useCallback((newIssues) => {
-    setLocalProjectData(prevData => ({
-      project: {
-        ...prevData.project,
-        issues: newIssues,
-      },
-    }));
+    setLocalProjectData(prevData => ({ project: { ...prevData.project, issues: newIssues } }));
   }, [setLocalProjectData]);
+
   const moveIssuesInColumn = useCallback((statusKey, orderedIds) => {
     setLocalProjectData(prevData => {
       const issues = [...prevData.project.issues];
       const otherIssues = issues.filter(i => i.statusKey !== statusKey);
-      const colIssuesMap = new Map(
-        issues.filter(i => i.statusKey === statusKey).map(i => [i.id, i])
-      );
+      const colIssuesMap = new Map(issues.filter(i => i.statusKey === statusKey).map(i => [i.id, i]));
       const newColIssues = orderedIds.map(id => colIssuesMap.get(id)).filter(Boolean);
       const statusOrder = Object.values(IssueStatus);
       let result = [];
       for (const st of statusOrder) {
-        if (st === statusKey) {
-          result.push(...newColIssues);
-        } else {
-          result.push(...otherIssues.filter(i => i.statusKey === st));
-        }
+        if (st === statusKey) result.push(...newColIssues);
+        else result.push(...otherIssues.filter(i => i.statusKey === st));
       }
-      return {
-        project: {
-          ...prevData.project,
-          issues: result,
-        },
-      };
+      return { project: { ...prevData.project, issues: result } };
     });
   }, [setLocalProjectData]);
 
   const isMountedRef = useRef(false);
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => { isMountedRef.current = false; };
-  }, []);
+  useEffect(() => { isMountedRef.current = true; return () => { isMountedRef.current = false; }; }, []);
 
   useEffect(() => {
-    if (typeof projectId === 'number' && !isNaN(projectId)) {
-      fetchProject(`/projects/${projectId}.json?include=issues`);
-    }
+    if (typeof projectId === 'number' && !isNaN(projectId)) fetchProject(`/projects/${projectId}.json?include=issues`);
   }, [projectId, fetchProject]);
 
   useEffect(() => {
     if (!projectsData) return;
-
-    // Если мы только что создали проект, игнорируем проверки и просто оставляем projectId
-    if (isNewlyCreated) {
-      return;
-    }
+    if (isNewlyCreated) return;
 
     if (projectsData.projects.length === 0) {
-      if (history.location.pathname !== `${match.url}/create`) {
-        history.push(`${match.url}/create`);
-      }
+      if (history.location.pathname !== `${match.url}/create`) history.push(`${match.url}/create`);
       return;
     }
 
@@ -281,10 +230,8 @@ const Project = () => {
     if (storedId) {
       const idNum = parseInt(storedId, 10);
       const exists = projectsData.projects.some(p => p.id === idNum);
-      if (exists) {
-        setProjectId(idNum);
-        return;
-      } else {
+      if (exists) { setProjectId(idNum); return; }
+      else {
         localStorage.removeItem('currentProjectId');
         toast.info('Previously selected project was deleted, switching to another one.');
       }
@@ -299,11 +246,8 @@ const Project = () => {
 
   useEffect(() => {
     if (!projectError) return;
-    const status = projectError?.status; // ваш api кладёт статус в error.status
-    if (status === 404) {
-      // Для только что созданного проекта не сбрасываем id — ждём повторных попыток
+    if (projectError?.status === 404) {
       if (isNewlyCreated) return;
-
       toast.info('Previously selected project was deleted, switching to another one.');
       localStorage.removeItem('currentProjectId');
       setProjectId(null);
@@ -314,19 +258,9 @@ const Project = () => {
   const isCreatePage = history.location.pathname === `${match.url}/create`;
 
   if (!projectsData) return <PageLoader />;
-
-  // Если список проектов пуст и мы не на странице создания и нет projectId (не новый проект) — редирект на создание
-  if (projectsData.projects.length === 0 && !projectId && !isCreatePage) {
-    return <Redirect to={`${match.url}/create`} />;
-  }
-
-  // Если список пуст, страница создания и проект не новый — показываем форму создания
+  if (projectsData.projects.length === 0 && !projectId && !isCreatePage) return <Redirect to={`${match.url}/create`} />;
   if (projectsData.projects.length === 0 && isCreatePage && !isNewlyCreated) {
-    return (
-      <ProjectPage isCreatePage>
-        <Route path={`${match.path}/create`} component={ProjectCreate} />
-      </ProjectPage>
-    );
+    return <ProjectPage isCreatePage><Route path={`${match.path}/create`} component={ProjectCreate} /></ProjectPage>;
   }
 
   const errorStatus = projectError?.status;
@@ -337,205 +271,114 @@ const Project = () => {
 
   const projectFromRedmine = projectData?.project;
   const project = projectFromRedmine
-    ? {
-        ...projectFromRedmine,
-        users: projectFromRedmine.users || [],
-        issues: projectFromRedmine.issues || [],
-      }
+    ? { ...projectFromRedmine, users: projectFromRedmine.users || [], issues: projectFromRedmine.issues || [] }
     : null;
-
   if (!project) return <PageLoader />;
 
   const updateLocalProjectIssues = (issueId, updatedFields) => {
     setLocalProjectData(currentData => ({
-      project: {
-        ...currentData.project,
-        issues: updateArrayItemById(currentData.project.issues, issueId, updatedFields),
-      },
+      project: { ...currentData.project, issues: updateArrayItemById(currentData.project.issues, issueId, updatedFields) },
     }));
   };
 
   return (
     <>
-      {/* Маршрут Summary – с собственным белым контейнером */}
-      <Route
-        path={`${match.path}/summary`}
-        render={() => (
-          <>
-            {!isCreatePage && (
-              <>
-                <Navbar
-                  issueSearchModalOpen={issueSearchModalHelpers.open}
-                  issueCreateModalOpen={issueCreateModalHelpers.open}
-                  project={project}
-                />
-                <Sidebar project={project} />
-              </>
-            )}
-            <div style={{
-              padding: '67.5px 32px 62.5px 515px',
-              minHeight: '100vh',
-              background: '#fff',
-              fontFamily: "'Outfit', sans-serif",
-            }}>
-              <ProjectBoardHeader project={project} />
-              <ProjectToolbar baseUrl={match.url.replace(/\/board$/, '')} />
-              <ProjectSummary project={project} />
-            </div>
-          </>
-        )}
-      />
-      <Route
-        path={`${match.path}/reports`}
-        render={() => (
-          <>
-            {!isCreatePage && (
-              <>
-                <Navbar
-                  issueSearchModalOpen={issueSearchModalHelpers.open}
-                  issueCreateModalOpen={issueCreateModalHelpers.open}
-                  project={project}
-                />
-                <Sidebar project={project} />
-              </>
-            )}
-            <div style={{
-              padding: '67.5px 32px 62.5px 515px',
-              minHeight: '100vh',
-              background: '#fff',
-              fontFamily: "'Outfit', sans-serif",
-            }}>
-              <ProjectBoardHeader project={project} />
-              <ProjectToolbar baseUrl={match.url.replace(/\/board$/, '')} />
-              <ProjectReports project={project} />
-            </div>
-          </>
-        )}
-      />
-      <Route
-        path={`${match.path}/issues`}
-        render={() => (
-          <>
-            {!isCreatePage && (
-              <>
-                <Navbar
-                  issueSearchModalOpen={issueSearchModalHelpers.open}
-                  issueCreateModalOpen={issueCreateModalHelpers.open}
-                  project={project}
-                />
-                <Sidebar project={project} />
-              </>
-            )}
-            <div style={{
-              padding: '67.5px 32px 62.5px 515px',
-              minHeight: '100vh',
-              background: '#fff',
-              fontFamily: "'Outfit', sans-serif",
-            }}>
-              <ProjectBoardHeader project={project} />
-              <ProjectToolbar baseUrl={match.url.replace(/\/board$/, '')} />
-              <ProjectIssues
-                project={project}
-                updateIssue={updateLocalProjectIssues}
-                currentUser={currentUser}
-                fetchProject={fetchProject}
-              />
-            </div>
-          </>
-        )}
-      />
-      <Route
-        path={`${match.path}/attachments`}
-        render={() => (
-          <>
-            {!isCreatePage && (
-              <>
-                <Navbar
-                  issueSearchModalOpen={issueSearchModalHelpers.open}
-                  issueCreateModalOpen={issueCreateModalHelpers.open}
-                  project={project}
-                />
-                <Sidebar project={project} />
-              </>
-            )}
-            <div style={{ padding: '67.5px 32px 62.5px 515px', minHeight: '100vh', background: '#fff', fontFamily: "'Outfit', sans-serif" }}>
-              <ProjectBoardHeader project={project} />
-              <ProjectToolbar baseUrl={match.url.replace(/\/board$/, '')} />
-              <ProjectAttachments
-                project={project}
-                fetchProject={() => fetchProject(`/projects/${project.id}.json?include=issues`)}
-              />
-            </div>
-          </>
-        )}
-      />
+      {issueSearchModalHelpers.isOpen() && (
+        <Modal isOpen testid="modal:issue-search" variant="search" withCloseIcon={false}
+          onClose={issueSearchModalHelpers.close}
+          renderContent={() => <IssueSearch project={project} />}
+        />
+      )}
+      {issueCreateModalHelpers.isOpen() && (
+        <Modal isOpen testid="modal:issue-create" width={1040} withCloseIcon={false}
+          onClose={issueCreateModalHelpers.close}
+          renderContent={modal => (
+            <IssueCreate
+              project={project}
+              fetchProject={() => fetchProject(`/projects/${project.id}.json?include=issues`)}
+              onCreate={() => { fetchProject(`/projects/${project.id}.json?include=issues`); history.push(`${match.url}/board`); }}
+              modalClose={modal.close}
+            />
+          )}
+        />
+      )}
+
+      <Route path={`${match.path}/summary`} render={() => (
+        <>
+          {!isCreatePage && <>
+            <Navbar issueSearchModalOpen={issueSearchModalHelpers.open} issueCreateModalOpen={issueCreateModalHelpers.open} project={project} />
+            <Sidebar project={project} />
+          </>}
+          <div style={{ padding: '67.5px 32px 62.5px 515px', minHeight: '100vh', background: '#fff', fontFamily: "'Outfit', sans-serif" }}>
+            <ProjectBoardHeader project={project} />
+            <ProjectToolbar baseUrl={match.url.replace(/\/board$/, '')} />
+            <ProjectSummary project={project} />
+          </div>
+        </>
+      )} />
+
+      <Route path={`${match.path}/reports`} render={() => (
+        <>
+          {!isCreatePage && <>
+            <Navbar issueSearchModalOpen={issueSearchModalHelpers.open} issueCreateModalOpen={issueCreateModalHelpers.open} project={project} />
+            <Sidebar project={project} />
+          </>}
+          <div style={{ padding: '67.5px 32px 62.5px 515px', minHeight: '100vh', background: '#fff', fontFamily: "'Outfit', sans-serif" }}>
+            <ProjectBoardHeader project={project} />
+            <ProjectToolbar baseUrl={match.url.replace(/\/board$/, '')} />
+            <ProjectReports project={project} />
+          </div>
+        </>
+      )} />
+
+      <Route path={`${match.path}/issues`} render={() => (
+        <>
+          {!isCreatePage && <>
+            <Navbar issueSearchModalOpen={issueSearchModalHelpers.open} issueCreateModalOpen={issueCreateModalHelpers.open} project={project} />
+            <Sidebar project={project} />
+          </>}
+          <div style={{ padding: '67.5px 32px 62.5px 515px', minHeight: '100vh', background: '#fff', fontFamily: "'Outfit', sans-serif" }}>
+            <ProjectBoardHeader project={project} />
+            <ProjectToolbar baseUrl={match.url.replace(/\/board$/, '')} />
+            <ProjectIssues project={project} updateIssue={updateLocalProjectIssues} currentUser={currentUser} fetchProject={fetchProject} />
+          </div>
+        </>
+      )} />
+
+      <Route path={`${match.path}/attachments`} render={() => (
+        <>
+          {!isCreatePage && <>
+            <Navbar issueSearchModalOpen={issueSearchModalHelpers.open} issueCreateModalOpen={issueCreateModalHelpers.open} project={project} />
+            <Sidebar project={project} />
+          </>}
+          <div style={{ padding: '67.5px 32px 62.5px 515px', minHeight: '100vh', background: '#fff', fontFamily: "'Outfit', sans-serif" }}>
+            <ProjectBoardHeader project={project} />
+            <ProjectToolbar baseUrl={match.url.replace(/\/board$/, '')} />
+            <ProjectAttachments project={project} fetchProject={() => fetchProject(`/projects/${project.id}.json?include=issues`)} />
+          </div>
+        </>
+      )} />
+
       {!isSummaryPage && !isIssuesPage && !isAttachmentsPage && (
         <ProjectPage isCreatePage={isCreatePage}>
-          {!isCreatePage && (
-            <>
-              <Navbar
-                issueSearchModalOpen={issueSearchModalHelpers.open}
-                issueCreateModalOpen={issueCreateModalHelpers.open}
-                project={project}
-              />
-              <Sidebar project={project} />
-            </>
-          )}
+          {!isCreatePage && <>
+            <Navbar issueSearchModalOpen={issueSearchModalHelpers.open} issueCreateModalOpen={issueCreateModalHelpers.open} project={project} />
+            <Sidebar project={project} />
+          </>}
 
           <Route path={`${match.path}/create`} component={ProjectCreate} />
-          <Route
-            path={`${match.path}/board`}
-            render={() => (
-              <Board
-                project={project}
-                fetchProject={() => fetchProject(`/projects/${project.id}.json?include=issues`)}
-                updateLocalProjectIssues={updateLocalProjectIssues}
-                moveIssueInList={moveIssueInList}
-                moveIssuesInColumn={moveIssuesInColumn}
-                updateAllIssues={updateAllIssues} // <-- НОВЫЙ ПРОП
-              />
-            )}
-          />
-          <Route
-            path={`${match.path}/settings`}
-            render={() => (
-              <ProjectSettings
-                project={project}
-                fetchProject={() => fetchProject(`/projects/${project.id}.json?include=issues`)}
-              />
-            )}
-          />
-
-          {issueSearchModalHelpers.isOpen() && (
-            <Modal
-              isOpen
-              testid="modal:issue-search"
-              variant="search"
-              withCloseIcon={false}
-              onClose={issueSearchModalHelpers.close}
-              renderContent={() => <IssueSearch project={project} />}
+          <Route path={`${match.path}/board`} render={() => (
+            <Board project={project}
+              fetchProject={() => fetchProject(`/projects/${project.id}.json?include=issues`)}
+              updateLocalProjectIssues={updateLocalProjectIssues}
+              moveIssueInList={moveIssueInList}
+              moveIssuesInColumn={moveIssuesInColumn}
+              updateAllIssues={updateAllIssues}
             />
-          )}
-          {issueCreateModalHelpers.isOpen() && (
-            <Modal
-              isOpen
-              testid="modal:issue-create"
-              width={1040}
-              withCloseIcon={false}
-              onClose={issueCreateModalHelpers.close}
-              renderContent={modal => (
-                <IssueCreate
-                  project={project}
-                  fetchProject={() => fetchProject(`/projects/${project.id}.json?include=issues`)}
-                  onCreate={() => {
-                    fetchProject(`/projects/${project.id}.json?include=issues`);
-                    history.push(`${match.url}/board`);
-                  }}
-                  modalClose={modal.close}
-                />
-              )}
-            />
-          )}
+          )} />
+          <Route path={`${match.path}/settings`} render={() => (
+            <ProjectSettings project={project} fetchProject={() => fetchProject(`/projects/${project.id}.json?include=issues`)} />
+          )} />
 
           {match.isExact && <Redirect to={`${match.url}/board`} />}
         </ProjectPage>
