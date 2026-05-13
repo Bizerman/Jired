@@ -4,35 +4,51 @@ import { font, color, mixin } from 'shared/utils/styles';
 export const FormCont = styled.div`
   display: flex;
   justify-content: center;
-  padding: 40px;
+  padding: 20px;
   width: 100%;
+  min-height: auto;
+  box-sizing: border-box;
 `;
 
 export const FormElement = styled.div`
   width: 100%;
-  max-width: 640px;
+  max-width: 600px;
   background: #fff;
   border: 1px solid ${color.borderLightest};
   border-radius: 8px;
-  padding: 32px;
+  padding: 24px;
+  margin-bottom: 40px;
   ${mixin.boxShadowMedium}
   ${font.regular}
+
+  @media (min-height: 1080px) {
+    padding: 28px 32px;
+    max-width: 640px;
+  }
 `;
 
 export const FormHeading = styled.h1`
-  margin-top: 12px;
-  margin-bottom: 6px;
-  font-size: 24px;
+  margin-top: 8px;
+  margin-bottom: 4px;
+  font-size: 22px;
   ${font.bold}
   color: #360f0f;
   line-height: 1.3;
+
+  @media (min-height: 1080px) {
+    font-size: 24px;
+  }
 `;
 
 export const RequiredNote = styled.p`
   margin: 0;
   ${font.regular}
-  font-size: 13px;
+  font-size: 12px;
   color: #725757;
+
+  @media (min-height: 1080px) {
+    font-size: 13px;
+  }
 `;
 
 export const Asterisk = styled.span`
@@ -42,7 +58,7 @@ export const Asterisk = styled.span`
 export const FormFields = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
   width: 100%;
 `;
 
@@ -54,20 +70,24 @@ export const FieldGroup = styled.div`
 export const FieldLabel = styled.label`
   display: block;
   ${font.medium}
-  font-size: 14px;
+  font-size: 13px;
   color: #5f5f5f;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
+
+  @media (min-height: 1080px) {
+    font-size: 14px;
+  }
 `;
 
 export const StyledInput = styled.input`
   width: 100%;
   ${font.regular}
-  font-size: 15px;
+  font-size: 14px;
   color: #3f3f3f;
   background: #fff;
   border: 1px solid #ececec;
   border-radius: 6px;
-  padding: 10px 14px;
+  padding: 8px 14px;
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
   &::placeholder {
@@ -80,22 +100,22 @@ export const StyledInput = styled.input`
 `;
 
 export const KeyField = styled.div`
-  width: 160px;
+  width: 150px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 `;
 
 export const KeyInput = styled.input`
   width: 100%;
   ${font.medium}
-  font-size: 15px;
+  font-size: 14px;
   color: #8c8c8c;
   text-transform: uppercase;
   background: #f9f9f9;
   border: 1px solid #ececec;
   border-radius: 6px;
-  padding: 10px 14px;
+  padding: 8px 14px;
   outline: none;
   letter-spacing: 0.5px;
   cursor: not-allowed;
@@ -103,12 +123,12 @@ export const KeyInput = styled.input`
 
 export const SubmitButton = styled.button`
   ${font.medium}
-  font-size: 15px;
+  font-size: 14px;
   color: #fff;
   background: ${color.primary};
   border: none;
   border-radius: 6px;
-  padding: 10px 24px;
+  padding: 8px 20px;
   cursor: pointer;
   transition: opacity 0.15s, transform 0.1s;
   &:hover { opacity: 0.9; }
@@ -188,12 +208,12 @@ export const ColorInput = styled.input`
 
 export const DeleteButton = styled.button`
   ${font.medium}
-  font-size: 15px;
+  font-size: 14px;
   color: #fff;
   background: #423e3e;
   border: none;
   border-radius: 6px;
-  padding: 10px 24px;
+  padding: 8px 20px;
   cursor: pointer;
   transition: opacity 0.15s, transform 0.1s;
   &:hover { opacity: 0.9; }
@@ -202,11 +222,11 @@ export const DeleteButton = styled.button`
 `;
 
 export const FormFieldsWrapper = styled(FormFields)`
-  margin-top: 24px;
+  margin-top: 12px;
 `;
 
 export const Separator = styled.hr`
-  margin: 32px 0 24px;
+  margin: 20px 0 16px;
   border: none;
   border-top: 1px solid ${color.borderLightest};
 `;
@@ -215,7 +235,7 @@ export const ActionsWrapper = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 32px;
+  margin-top: 20px;
 `;
 
 export const DeleteModalContent = styled.div`
