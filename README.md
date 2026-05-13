@@ -83,7 +83,7 @@ jired/
 
 ```bash
 git clone https://github.com/Bizerman/Jired.git
-cd jired
+cd jired/jired
 ```
 
 ### 2. Настройте переменные окружения
@@ -113,7 +113,7 @@ docker compose up -d
 * **Jired (клиент):** [http://localhost:8080](http://localhost:8080)
 * **Redmine (сервер):** [http://localhost](http://localhost)
 
-Для входа в Jired используйте **API-ключ** пользователя Redmine (доступен в настройках профиля Redmine: *My account → API access key*).
+Для входа в Jired используйте **API-ключ** пользователя Redmine (необходимо включить в настройках опцию REST API и ключ станет доступен в настройках профиля Redmine: *My account → API access key*).
 
 ---
 
