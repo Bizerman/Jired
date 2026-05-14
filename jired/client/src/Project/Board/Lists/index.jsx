@@ -79,8 +79,6 @@ const ProjectBoardLists = ({
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
 
     const authToken = getStoredAuthToken();
-
-    // ЛОГИКА ПЕРЕТАСКИВАНИЯ ГРУППЫ
     if (type === 'GROUP') {
       const [_, sourceStatus, groupId] = draggableId.split('::');
       const destStatus = getStatusFromDroppableId(destination.droppableId);
@@ -187,7 +185,7 @@ const ProjectBoardLists = ({
 
     const isMulti = selectedIssueIds.size > 0 && selectedIssueIds.has(issueId);
     const movingIds = isMulti ? Array.from(selectedIssueIds) : [issueId];
-
+    
     let updatedGroups = groups ? [...groups] : [];
     if (sourceGroupId !== destGroupId) {
       if (sourceGroupId !== 'ungrouped') {
@@ -256,8 +254,54 @@ const ProjectBoardLists = ({
         console.error('Mass update failed', error);
       }
     }
-  }, [project, selectedIssueIds, groups, onGroupsChange, updateAllIssues]);
-
+    const doneStatus = project.statuses.find(s => s.is_closed);
+    if (doneStatus && destStatusKey === 'done' && authToken) {
+    checkBlockersAndSubtasks(movingIds, authToken).then((blockedTasks) => {
+      if (blockedTasks.length > 0) {
+        if (fetchProject) {
+          fetchProject(`/projects/${project.id}.json?include=issues`);
+        }
+        toast.error(`Cannot complete: ${blockedTasks.join(', ')}`);
+      }
+    }).catch(e => {
+      toast.error('Unable to verify blockers/subtasks');
+    });
+  }
+}, [project, selectedIssueIds, groups, onGroupsChange, updateAllIssues, fetchProject]);
+  const checkBlockersAndSubtasks = async (taskIds, authToken) => {
+    const blockedTasks = [];
+    for (const id of taskIds) {
+      try {
+        const { data: issueData } = await axios.get(`/redmine/issues/${id}.json?include=relations`, {
+          headers: { 'X-Redmine-API-Key': authToken, 'Cache-Control': 'no-cache' },
+        });
+        const relations = issueData.issue.relations || [];
+        for (const rel of relations) {
+          const isBlocked = (rel.relation_type === 'blocks' && rel.issue_to_id === id) ||
+                            (rel.relation_type === 'blocked_by' && rel.issue_from_id === id);
+          if (isBlocked) {
+            const blockerId = rel.relation_type === 'blocks' ? rel.issue_id : rel.issue_to_id;
+            const { data: blockerData } = await axios.get(`/redmine/issues/${blockerId}.json`, {
+              headers: { 'X-Redmine-API-Key': authToken, 'Cache-Control': 'no-cache' },
+            });
+            if (!blockerData.issue.status?.is_closed) {
+              blockedTasks.push(`#${id} (blocked by #${blockerId})`);
+            }
+          }
+        }
+        const { data: childrenData } = await axios.get(`/redmine/issues.json?parent_id=${id}&status_id=*`, {
+          headers: { 'X-Redmine-API-Key': authToken },
+        });
+        const openChildren = (childrenData.issues || []).filter(child => !child.status?.is_closed);
+        if (openChildren.length > 0) {
+          blockedTasks.push(`#${id} (${openChildren.length} open subtasks)`);
+        }
+      } catch (e) {
+        console.error('Background check failed', e);
+      }
+    }
+    return blockedTasks;
+  };
   const [{ data: prioritiesData }] = useApi.get('/enumerations/issue_priorities.json');
   const priorities = prioritiesData?.issue_priorities || [];
 

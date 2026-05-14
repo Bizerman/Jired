@@ -71,36 +71,31 @@ const ProjectBoardIssueDetails = ({
   const updateIssue = async (fields) => {
     if (!issue) return;
 
-    // Оптимистичное обновление данных в модальном окне
     const updatedIssue = { ...issue, ...fields };
-    // Если меняется priority_id, подставляем соответствующий объект в .priority
     if (fields.priority_id !== undefined) {
       const newPrio = priorities.find(p => p.id === fields.priority_id);
-      if (newPrio) {
-        updatedIssue.priority = { id: newPrio.id, name: newPrio.name };
-      }
+      if (newPrio) updatedIssue.priority = { id: newPrio.id, name: newPrio.name };
     }
-    // Аналогично для status_id, чтобы корректно обновить .status
     if (fields.status_id !== undefined) {
       const newStatus = statuses.find(s => s.id === fields.status_id);
-      if (newStatus) {
-        updatedIssue.status = { id: newStatus.id, name: newStatus.name };
-      }
+      if (newStatus) updatedIssue.status = { id: newStatus.id, name: newStatus.name };
     }
     setIssue(updatedIssue);
-    // Проверка блокировок при смене статуса на Done
+
+    // Проверка блокировок и подзадач при переводе в Done
     if (fields.status_id) {
-      const doneStatusId = statuses.find(s => s.name === 'Done')?.id;
-      if (fields.status_id === doneStatusId) {
+      const closedStatus = statuses.find(s => s.is_closed);
+      if (closedStatus && fields.status_id === closedStatus.id) {
         try {
           const authToken = getStoredAuthToken();
           if (!authToken) {
             toast.error('Authentication token not found');
             return;
           }
+          // Проверка блокировок
           const { data: issueData } = await axios.get(
             `/redmine/issues/${issue.id}.json?include=relations`,
-            { headers: { 'X-Redmine-API-Key': authToken } }
+            { headers: { 'X-Redmine-API-Key': authToken, 'Cache-Control': 'no-cache' } }
           );
           const relations = issueData.issue.relations || [];
           for (const rel of relations) {
@@ -111,24 +106,34 @@ const ProjectBoardIssueDetails = ({
               const blockerId = rel.relation_type === 'blocks' ? rel.issue_id : rel.issue_to_id;
               const { data: blockerData } = await axios.get(
                 `/redmine/issues/${blockerId}.json`,
-                { headers: { 'X-Redmine-API-Key': authToken } }
+                { headers: { 'X-Redmine-API-Key': authToken, 'Cache-Control': 'no-cache' } }
               );
-              const blockerStatus = blockerData.issue.status?.name;
-              if (blockerStatus !== 'Done') {
-                toast.error(`This task is blocked by #${blockerId} (${blockerStatus}). Complete it first.`);
+              if (!blockerData.issue.status?.is_closed) {
+                toast.error(`This task is blocked by #${blockerId} (${blockerData.issue.status?.name}). Complete it first.`);
                 fetchIssue();
                 return;
               }
             }
           }
+
+          // Проверка подзадач
+          const { data: childrenData } = await api.get(`/issues.json?parent_id=${issue.id}&status_id=*`);
+          const children = childrenData?.issues || [];
+          const openChildren = children.filter(child => !child.status?.is_closed);
+          if (openChildren.length > 0) {
+            toast.error(`This task has ${openChildren.length} open subtask(s). Complete them first.`);
+            fetchIssue();
+            return;
+          }
         } catch (e) {
           console.error(e);
-          toast.error('Unable to check blockers');
+          toast.error('Unable to verify blockers or subtasks');
           fetchIssue();
           return;
         }
       }
     }
+
     try {
       const payload = { issue: {} };
       if ('subject' in fields) payload.issue.subject = fields.subject;
@@ -149,7 +154,6 @@ const ProjectBoardIssueDetails = ({
       return;
     }
 
-    // Подготовка mappedFields для доски (уже есть, но оставим как есть)
     const mappedFields = { ...fields };
     if (fields.subject) mappedFields.title = fields.subject;
     if (fields.status_id) {
@@ -172,8 +176,7 @@ const ProjectBoardIssueDetails = ({
     if (updateLocalProjectIssues) {
       updateLocalProjectIssues(issue.id, mappedFields);
     }
-    
-};
+  };
 
   const handleSave = async () => {
     if (Object.keys(pendingChanges).length === 0) {
@@ -190,7 +193,7 @@ const ProjectBoardIssueDetails = ({
   const handleCancel = () => {
     setPendingChanges({});
     setIsEditing(false);
-    fetchIssue(); // откатываем модальное окно
+    fetchIssue();
   };
 
   const handleModalClose = () => {
