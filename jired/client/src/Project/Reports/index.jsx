@@ -34,17 +34,23 @@ const ProjectReports = ({ project }) => {
 
   const ganttData = useMemo(() => {
     const validIssues = issues
-      .map(i => ({
-        ...i,
-        start: moment(i.start_date || i.created_on),
-        end: moment(i.due_date || i.updatedAt || i.updated_on),
-      }))
+      .map(i => {
+        const start = moment(i.start_date || i.created_on);
+        let end = moment(i.due_date || i.updatedAt || i.updated_on);
+        
+        if (end.isValid() && start.isValid() && end.isBefore(start)) {
+          end = start.clone().add(1, 'day');
+        }
+
+        return { ...i, start, end };
+      })
       .filter(i => i.start.isValid() && i.end.isValid());
 
     if (validIssues.length === 0) return null;
 
-    const minDate = moment.min(validIssues.map(i => i.start));
-    const maxDate = moment.max(validIssues.map(i => i.end));
+    const minDate = moment.min(validIssues.map(i => i.start)).startOf('day');
+    const maxDate = moment.max(validIssues.map(i => i.end)).endOf('day'); 
+    
     const totalDuration = Math.max(maxDate.diff(minDate, 'hours'), 24);
 
     return {
@@ -55,39 +61,62 @@ const ProjectReports = ({ project }) => {
     };
   }, [issues]);
 
+  // --- ИСПРАВЛЕННЫЙ BURNDOWN DATA ---
   const burndownData = useMemo(() => {
     if (issues.length === 0) return null;
 
     const today = moment().startOf('day');
-    const minDate = issues.reduce((min, issue) => {
+    
+    // 1. Ищем минимальную и максимальную даты для оси X
+    let minDate = moment(today);
+    let maxDate = moment(today);
+
+    issues.forEach(issue => {
       const start = moment(issue.start_date || issue.created_on);
-      return start.isValid() && start.isBefore(min) ? start : min;
-    }, moment(today));
+      if (start.isValid() && start.isBefore(minDate)) minDate = start.clone().startOf('day');
 
-    const daysCount = today.diff(minDate, 'days') + 1;
-    if (daysCount <= 0) return null;
-
-    const days = Array.from({ length: daysCount }, (_, i) =>
-      minDate.clone().add(i, 'days').format('D MMM'),
-    );
-
-    const ideal = days.map((_, idx) => {
-      const fraction = idx / (daysCount - 1 || 1);
-      return Math.round(issues.length * (1 - fraction));
+      const end = moment(issue.due_date || issue.closed_on || issue.updated_on || issue.updatedAt);
+      if (end.isValid() && end.isAfter(maxDate)) maxDate = end.clone().startOf('day');
     });
 
-    const actual = days.map((_, idx) => {
-      const day = minDate.clone().add(idx, 'days');
-      return issues.filter(issue => {
+    const totalDays = Math.max(maxDate.diff(minDate, 'days'), 1);
+
+    const actual = [];
+    let lastRemaining = issues.length;
+
+    // 2. Считаем остаток задач по дням
+    for (let i = 0; i <= totalDays; i++) {
+      const currentDay = minDate.clone().add(i, 'days');
+      const fraction = i / totalDays;
+
+      // Если день в будущем, мы перестаем рисовать фактическую линию
+      if (currentDay.isAfter(today)) {
+        break;
+      }
+
+      const remaining = issues.filter(issue => {
         if (issue.status?.is_closed || issue.statusKey === 'done') {
-          const closedDate = moment(issue.updated_on || issue.updatedAt || issue.due_date);
-          return !closedDate.isValid() || closedDate.isAfter(day, 'day');
+          const closedDate = moment(issue.closed_on || issue.updated_on || issue.updatedAt || issue.due_date);
+          // Если задача была закрыта до или в этот день, она больше не "осталась"
+          if (closedDate.isValid() && closedDate.isSameOrBefore(currentDay, 'day')) {
+            return false;
+          }
         }
-        return true;
+        return true; 
       }).length;
-    });
 
-    return { days, ideal, actual };
+      actual.push({ xRatio: fraction, val: remaining });
+      lastRemaining = remaining;
+    }
+
+    return { 
+      minDate, 
+      maxDate, 
+      today, 
+      totalDays,
+      actual, 
+      currentRemaining: lastRemaining 
+    };
   }, [issues]);
 
   const renderGantt = () => {
@@ -95,41 +124,85 @@ const ProjectReports = ({ project }) => {
       return <EmptyState>{t('ganttNoData')}</EmptyState>;
     }
 
+    const { minDate, maxDate, totalDuration, items } = ganttData;
+    
+    // Расчет позиции линии "Сегодня"
+    const now = moment();
+    const isTodayInRange = now.isBetween(minDate, maxDate);
+    const todayLeftOffset = isTodayInRange 
+      ? (now.diff(minDate, 'hours') / totalDuration) * 100 
+      : null;
+
     return (
-      <ChartContainer>
+      <ChartContainer style={{ position: 'relative' }}>
+        
+        {/* Шапка с датами */}
         <div style={{
           display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontSize: '12px',
-          color: '#866f6f', paddingLeft: '200px'
+          color: '#866f6f', paddingLeft: '200px' // Убедись, что 200px совпадает с шириной твоего GanttLabel
         }}>
-          <span>{ganttData.minDate.format('DD.MM.YYYY')}</span>
-          <span>{ganttData.maxDate.format('DD.MM.YYYY')}</span>
+          <span>{minDate.format('DD.MM.YYYY')}</span>
+          <span>{maxDate.format('DD.MM.YYYY')}</span>
         </div>
-        {ganttData.items.map(issue => {
-          const leftOffset = Math.max(
-            (issue.start.diff(ganttData.minDate, 'hours') / ganttData.totalDuration) * 100, 0
-          );
-          const durationWidth = Math.max(
-            (issue.end.diff(issue.start, 'hours') / ganttData.totalDuration) * 100, 1
-          );
 
-          return (
-            <GanttRow key={issue.id}>
-              <GanttLabel title={issue.title}>ISSUE-{issue.id}: {issue.title}</GanttLabel>
-              <GanttTimeline>
-                <GanttBar
-                  left={leftOffset}
-                  width={durationWidth}
-                  title={`${issue.start.format('DD.MM')} - ${issue.end.format('DD.MM')}`}
-                />
-              </GanttTimeline>
-            </GanttRow>
-          );
-        })}
+        {/* Контейнер для строк (чтобы позиционировать линию "Сегодня") */}
+        <div style={{ position: 'relative' }}>
+          
+          {/* Вертикальная линия "Сегодня" */}
+          {isTodayInRange && (
+             <div style={{
+               position: 'absolute',
+               left: `calc(200px + ${todayLeftOffset}vw - 200px * (${todayLeftOffset} / 100))`, // примерная корректировка с учетом отступа
+               // Для идеальной точности лучше сделать timeline container (правую часть) отдельным relative блоком, 
+               // ниже я покажу как линия будет стоять внутри самого GanttTimeline
+             }} />
+          )}
+
+          {items.map(issue => {
+            // 3. Фикс: Защита от NaN и отрицательных значений
+            let leftOffset = Math.max((issue.start.diff(minDate, 'hours') / totalDuration) * 100, 0);
+            let durationWidth = Math.max((issue.end.diff(issue.start, 'hours') / totalDuration) * 100, 0.5); // Минимум 0.5% чтобы точку было видно
+
+            // 4. Фикс: Защита от вылезания за пределы 100% (container overflow)
+            if (leftOffset + durationWidth > 100) {
+              durationWidth = 100 - leftOffset;
+            }
+
+            return (
+              <GanttRow key={issue.id}>
+                <GanttLabel title={issue.title}>ISSUE-{issue.id}: {issue.title}</GanttLabel>
+                
+                <GanttTimeline style={{ position: 'relative' }}>
+                  {/* Отрисовка линии "сегодня" внутри таймлайна (чтобы не мучиться с 200px отступом) */}
+                  {isTodayInRange && (
+                    <div style={{
+                      position: 'absolute',
+                      left: `${todayLeftOffset}%`,
+                      top: 0,
+                      bottom: 0,
+                      width: '1px',
+                      backgroundColor: 'rgba(255, 0, 0, 0.4)', // Полупрозрачная красная линия
+                      zIndex: 1
+                    }} />
+                  )}
+
+                  <GanttBar
+                    left={leftOffset}
+                    width={durationWidth}
+                    title={`Старт: ${issue.start.format('DD.MM.YYYY HH:mm')}\nКонец: ${issue.end.format('DD.MM.YYYY HH:mm')}`}
+                    style={{ position: 'relative', zIndex: 2 }} // Чтобы бар был поверх линии "Сегодня"
+                  />
+                </GanttTimeline>
+              </GanttRow>
+            );
+          })}
+        </div>
       </ChartContainer>
     );
   };
 
   const renderStatusChart = () => {
+    // ... твой текущий renderStatusChart (без изменений) ...
     if (stats.total === 0) {
       return <EmptyState>{t('statusChartEmpty')}</EmptyState>;
     }
@@ -162,15 +235,31 @@ const ProjectReports = ({ project }) => {
     );
   };
 
+  // --- ИСПРАВЛЕННЫЙ RENDER BURNDOWN ---
   const renderBurndown = () => {
     if (!burndownData || issues.length === 0) {
       return <EmptyState>{t('burndownEmpty')}</EmptyState>;
     }
 
-    const { days, ideal, actual } = burndownData;
+    const { minDate, maxDate, today, totalDays, actual, currentRemaining } = burndownData;
     const maxTasks = issues.length;
+    
     const CHART_WIDTH = 600;
     const CHART_HEIGHT = 180;
+
+    // Вспомогательные функции для расчета координат
+    const getX = (ratio) => 10 + ratio * (CHART_WIDTH - 20);
+    const getY = (val) => 10 + (1 - val / maxTasks) * (CHART_HEIGHT - 20);
+
+    // Точки идеальной линии (от всех задач к 0)
+    const idealPoints = `${getX(0)},${getY(maxTasks)} ${getX(1)},${getY(0)}`;
+    
+    // Точки фактической линии (до текущего дня)
+    const actualPoints = actual.map(p => `${getX(p.xRatio)},${getY(p.val)}`).join(' ');
+
+    // Вычисляем позицию текущего дня на оси X (от 0 до 1)
+    let todayRatio = today.diff(minDate, 'days') / totalDays;
+    todayRatio = Math.max(0, Math.min(todayRatio, 1)); // Ограничиваем от 0 до 1
 
     return (
       <BurndownContainer>
@@ -179,36 +268,57 @@ const ProjectReports = ({ project }) => {
           color: '#725757', fontSize: 13
         }}>
           <span>{t('tasksRemaining')}</span>
-          <span>{t('xOfY', { done: actual[actual.length - 1], total: maxTasks })}</span>
+          <span>{t('xOfY', { done: maxTasks - currentRemaining, total: maxTasks })}</span>
         </div>
+        
         <svg
           viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
           preserveAspectRatio="xMidYMid meet"
           style={{ width: '100%', height: 'calc(100% - 24px)' }}
         >
-          <text x="10" y={CHART_HEIGHT - 5} fontSize="9" fill="#866f6f">
-            {days[0]}
+          {/* Дата начала (слева) */}
+          <text x="10" y={CHART_HEIGHT - 2} fontSize="9" fill="#866f6f">
+            {minDate.format('D MMM')}
           </text>
-          <text x={CHART_WIDTH - 10} y={CHART_HEIGHT - 5} fontSize="9" fill="#866f6f" textAnchor="end">
-            {days[days.length - 1]}
+
+          {/* Текущая дата (посередине графика, если она не совпадает с краями) */}
+          {todayRatio > 0 && todayRatio < 1 && (
+            <text x={getX(todayRatio)} y={CHART_HEIGHT - 2} fontSize="9" fill="#D29922" textAnchor="middle">
+              {today.format('D MMM')}
+            </text>
+          )}
+
+          {/* Дата окончания (справа) */}
+          <text x={CHART_WIDTH - 10} y={CHART_HEIGHT - 2} fontSize="9" fill="#866f6f" textAnchor="end">
+            {maxDate.format('D MMM')}
           </text>
+
+          {/* Идеальная линия (пунктир) */}
           <polyline
             fill="none"
             stroke="#ccc"
             strokeWidth="2"
             strokeDasharray="5,5"
-            points={`10,${CHART_HEIGHT - 10} ${CHART_WIDTH - 10},10`}
+            points={idealPoints}
           />
+
+          {/* Фактическая линия */}
           <polyline
             fill="none"
             stroke="#5E3F3F"
             strokeWidth="3"
-            points={actual.map((v, i) => {
-              const x = 10 + (i / (actual.length - 1)) * (CHART_WIDTH - 20);
-              const y = v === 0 ? 10 : 10 + (1 - v / maxTasks) * (CHART_HEIGHT - 20);
-              return `${x},${y}`;
-            }).join(' ')}
+            points={actualPoints}
           />
+          
+          {/* Точка на текущем дне для наглядности (опционально) */}
+          {actual.length > 0 && (
+             <circle 
+                cx={getX(actual[actual.length - 1].xRatio)} 
+                cy={getY(actual[actual.length - 1].val)} 
+                r="3" 
+                fill="#5E3F3F" 
+             />
+          )}
         </svg>
       </BurndownContainer>
     );
